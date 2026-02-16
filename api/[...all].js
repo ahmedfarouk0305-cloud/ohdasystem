@@ -13,7 +13,15 @@ const ensureDatabase = () => {
 }
 
 export default async function handler(req, res) {
-  await ensureDatabase()
-  return app(req, res)
+  try {
+    await ensureDatabase()
+    return app(req, res)
+  } catch (error) {
+    console.error("Unhandled error in Vercel API handler", error)
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ message: "Server error", details: error && error.message ? error.message : "Unknown error" })
+    }
+  }
 }
-

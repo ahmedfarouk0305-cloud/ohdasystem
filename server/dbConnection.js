@@ -1,6 +1,8 @@
 import mongoose from "mongoose"
 import axios from "axios"
 
+const isVercel = !!(globalThis.process && globalThis.process.env && globalThis.process.env.VERCEL)
+
 export const connection = async () => {
   try {
     let uri = globalThis.process && globalThis.process.env ? globalThis.process.env.MONGO_URI : undefined
@@ -68,6 +70,9 @@ export const connection = async () => {
 
     if (!uri) {
       console.error("Mongo URI is missing")
+      if (isVercel) {
+        throw new Error("Mongo URI is missing")
+      }
       if (globalThis.process && typeof globalThis.process.exit === "function") {
         globalThis.process.exit(1)
       } else {
@@ -84,6 +89,9 @@ export const connection = async () => {
     console.log("Connected to MongoDB (Ohda)")
   } catch (error) {
     console.error("Error connecting to MongoDB:", error.message)
+    if (isVercel) {
+      throw error
+    }
     if (globalThis.process && typeof globalThis.process.exit === "function") {
       globalThis.process.exit(1)
     } else {
