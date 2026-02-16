@@ -2,6 +2,7 @@ import express from "express"
 import multer from "multer"
 import fs from "fs"
 import path from "path"
+import os from "os"
 import { fileURLToPath } from "url"
 import Invoice from "../models/Invoice.js"
 import Oda from "../models/Oda.js"
@@ -10,10 +11,16 @@ const router = express.Router()
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const uploadsRoot = path.join(__dirname, "../uploads")
 
-if (!fs.existsSync(uploadsRoot)) {
-  fs.mkdirSync(uploadsRoot, { recursive: true })
+const isVercel = !!(globalThis.process && globalThis.process.env && globalThis.process.env.VERCEL)
+const uploadsRoot = isVercel ? path.join(os.tmpdir(), "ohda-uploads") : path.join(__dirname, "../uploads")
+
+try {
+  if (!fs.existsSync(uploadsRoot)) {
+    fs.mkdirSync(uploadsRoot, { recursive: true })
+  }
+} catch (error) {
+  console.error("Failed to ensure uploads directory", uploadsRoot, error?.message || error)
 }
 
 const storage = multer.diskStorage({
