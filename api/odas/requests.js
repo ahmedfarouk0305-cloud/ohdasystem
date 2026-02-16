@@ -1,4 +1,4 @@
-import app, { initDatabase } from "../../../server/index.js"
+import app, { initDatabase } from "../../server/index.js"
 
 let dbPromise
 
@@ -26,4 +26,3 @@ export default async function handler(req, res) {
     }
   }
 }
-
