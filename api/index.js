@@ -14,6 +14,14 @@ const ensureDatabase = () => {
 
 export default async function handler(req, res) {
   await ensureDatabase()
-  return app(req, res)
+  try {
+    const originalUrl = req.url || "/"
+    req.url = originalUrl.startsWith("/api") ? originalUrl : `/api${originalUrl}`
+    return app(req, res)
+  } catch (error) {
+    console.error("Unhandled error in /api index handler", error)
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Server error", details: error?.message || "Unknown error" })
+    }
+  }
 }
-

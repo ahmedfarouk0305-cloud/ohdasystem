@@ -15,6 +15,8 @@ const ensureDatabase = () => {
 export default async function handler(req, res) {
   try {
     await ensureDatabase()
+    const originalUrl = req.url || "/"
+    req.url = originalUrl.startsWith("/api") ? originalUrl : `/api${originalUrl}`
     return app(req, res)
   } catch (error) {
     console.error("Unhandled error in Vercel API handler", error)
