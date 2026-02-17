@@ -86,24 +86,33 @@ function App() {
     setIsLoading(true)
     try {
       const [odasResponse, invoicesResponse, odaRequestsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/odas`),
-        fetch(`${API_BASE_URL}/invoices`),
-        fetch(`${API_BASE_URL}/odas/requests`),
+        fetch(`${API_BASE_URL}/odas`, { headers: { Accept: 'application/json' } }),
+        fetch(`${API_BASE_URL}/invoices`, { headers: { Accept: 'application/json' } }),
+        fetch(`${API_BASE_URL}/odas/requests`, { headers: { Accept: 'application/json' } }),
       ])
 
       if (odasResponse.ok) {
-        const odasData = await odasResponse.json()
-        setOdas(odasData)
+        const ct = odasResponse.headers.get('content-type') || ''
+        if (ct.includes('application/json')) {
+          const odasData = await odasResponse.json()
+          setOdas(odasData)
+        }
       }
 
       if (invoicesResponse.ok) {
-        const invoicesData = await invoicesResponse.json()
-        setInvoices(invoicesData)
+        const ct = invoicesResponse.headers.get('content-type') || ''
+        if (ct.includes('application/json')) {
+          const invoicesData = await invoicesResponse.json()
+          setInvoices(invoicesData)
+        }
       }
 
       if (odaRequestsResponse.ok) {
-        const odaRequestsData = await odaRequestsResponse.json()
-        setOdaRequests(odaRequestsData)
+        const ct = odaRequestsResponse.headers.get('content-type') || ''
+        if (ct.includes('application/json')) {
+          const odaRequestsData = await odaRequestsResponse.json()
+          setOdaRequests(odaRequestsData)
+        }
       }
     } catch (error) {
       console.error(error)
