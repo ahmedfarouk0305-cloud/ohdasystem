@@ -6,6 +6,7 @@ export default function NewOdaPage({
 	onSubmit,
 	onBack,
   onLogout,
+  isSubmitting,
 }) {
 	return (
 		<div className="dashboard">
@@ -51,7 +52,7 @@ export default function NewOdaPage({
 					{newOdaError && <p className="oda-error">{newOdaError}</p>}
 
 					<div className="form-actions">
-						<button type="submit" className="primary-button">
+						<button type="submit" className="primary-button" disabled={isSubmitting}>
 							حفظ العهدة
 						</button>
 					</div>

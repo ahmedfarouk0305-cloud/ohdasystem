@@ -12,6 +12,7 @@ export default function VerifyCodePage({
   const [resendCountdown, setResendCountdown] = useState(0)
   const inputsRef = useRef([])
   const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const code = useMemo(() => digits.join(''), [digits])
   const isReady = code.length === 6 && /^\d{6}$/.test(code)
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function VerifyCodePage({
       const nextCode = next.join('')
       if (nextCode.length === 6 && onConfirm && phoneNumber && !isSubmittingRef.current) {
         isSubmittingRef.current = true
+        setIsSubmitting(true)
         Promise.resolve(onConfirm(phoneNumber, nextCode))
           .then((result) => {
             if (!result || !result.ok) {
@@ -73,6 +75,7 @@ export default function VerifyCodePage({
           })
           .finally(() => {
             isSubmittingRef.current = false
+            setIsSubmitting(false)
           })
       }
       return
@@ -90,6 +93,7 @@ export default function VerifyCodePage({
     const nextCode = next.join('')
     if (nextCode.length === 6 && onConfirm && phoneNumber && !isSubmittingRef.current) {
       isSubmittingRef.current = true
+      setIsSubmitting(true)
       Promise.resolve(onConfirm(phoneNumber, nextCode))
         .then((result) => {
           if (!result || !result.ok) {
@@ -101,6 +105,7 @@ export default function VerifyCodePage({
         })
         .finally(() => {
           isSubmittingRef.current = false
+          setIsSubmitting(false)
         })
     }
   }
@@ -167,14 +172,17 @@ export default function VerifyCodePage({
           <button
             type="button"
             className="primary-button verify-confirm"
-            disabled={!isReady}
+            disabled={!isReady || isSubmitting}
             onClick={async () => {
               if (onConfirm && phoneNumber) {
+                if (isSubmitting) return
+                setIsSubmitting(true)
                 const result = await onConfirm(phoneNumber, code)
                 if (!result || !result.ok) {
                   setIsError(true)
                   return
                 }
+                setIsSubmitting(false)
               }
             }}
           >

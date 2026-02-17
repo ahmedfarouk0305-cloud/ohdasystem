@@ -22,6 +22,7 @@ export default function OdaDetailsPage({
 	serverBaseUrl,
 	apiBaseUrl,
   onLogout,
+  isInvoiceSubmitting,
 }) {
 	if (!currentOda) {
 		return null
@@ -347,7 +348,7 @@ export default function OdaDetailsPage({
 								</button>
 							</div>
 							<div className="modal-actions modal-actions-save">
-								<button type="submit" className="primary-button">
+								<button type="submit" className="primary-button" disabled={isInvoiceSubmitting}>
 									حفظ الفاتورة
 								</button>
 							</div>

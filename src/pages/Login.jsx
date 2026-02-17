@@ -3,6 +3,7 @@ import { useState } from 'react'
 export default function LoginPage({ onSendCode, onOpenVerify }) {
   const [phone, setPhone] = useState('')
   const [localError, setLocalError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const canSendCode = /^05\d{8}$/.test(phone.trim())
 
   return (
@@ -30,9 +31,11 @@ export default function LoginPage({ onSendCode, onOpenVerify }) {
             <button
               type="button"
               className="primary-button login-send-code-button"
-              disabled={!canSendCode}
+              disabled={!canSendCode || isSubmitting}
               onClick={async () => {
                 setLocalError('')
+                if (isSubmitting) return
+                setIsSubmitting(true)
                 const result = await (onSendCode ? onSendCode(phone) : Promise.resolve({ ok: false }))
                 if (result && result.ok) {
                   if (onOpenVerify) {
@@ -41,6 +44,7 @@ export default function LoginPage({ onSendCode, onOpenVerify }) {
                 } else {
                   setLocalError('تعذر إرسال رمز التحقق، حاول مرة أخرى')
                 }
+                setIsSubmitting(false)
               }}
             >
               إرسال رمز التحقق

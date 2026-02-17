@@ -43,6 +43,7 @@ const byPrefixAndName = {
 	const [resendCountdown, setResendCountdown] = useState(0)
 	const inputsRef = useRef([])
 	const isSubmittingRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 	const code = useMemo(() => digits.join(''), [digits])
 	const isReady = code.length === 6 && /^\d{6}$/.test(code)
 
@@ -85,10 +86,12 @@ const byPrefixAndName = {
 			return
 		}
 		isSubmittingRef.current = true
+    setIsSubmitting(true)
 		const result = await onVerifyCode(accountantPhone, currentCode)
 		if (!result || !result.ok) {
 			setIsError(true)
 			isSubmittingRef.current = false
+      setIsSubmitting(false)
 			return
 		}
 		if (otpAction === 'approve' && onApprove && targetOdaId != null) {
@@ -97,6 +100,7 @@ const byPrefixAndName = {
 			await onReject(targetOdaId)
 		}
 		isSubmittingRef.current = false
+    setIsSubmitting(false)
 		closeOtp()
 	}
 
@@ -343,7 +347,7 @@ const byPrefixAndName = {
 							<button
 								type="button"
 								className="primary-button"
-								disabled={!isReady}
+                disabled={!isReady || isSubmitting}
 								onClick={() => tryVerifyAndExecute(code)}
 							>
 								تأكيد

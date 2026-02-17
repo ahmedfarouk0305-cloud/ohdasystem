@@ -37,6 +37,8 @@ function App() {
   const [odaEmployeeFilter, setOdaEmployeeFilter] = useState('all')
   const [odaRequests, setOdaRequests] = useState([])
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('')
+  const [newOdaSubmitting, setNewOdaSubmitting] = useState(false)
+  const [isAddingInvoice, setIsAddingInvoice] = useState(false)
 
   const currentRole = currentUser ? currentUser.role || '' : ''
 
@@ -324,6 +326,10 @@ function App() {
       return
     }
 
+    if (newOdaSubmitting) {
+      return
+    }
+
     const headers = {
       'Content-Type': 'application/json',
       ...getAuthHeaders(),
@@ -332,6 +338,7 @@ function App() {
     const employeeName = currentUser.fullName || currentUser.email
 
     try {
+      setNewOdaSubmitting(true)
       const response = await fetch(`${API_BASE_URL}/odas`, {
         method: 'POST',
         headers,
@@ -352,6 +359,7 @@ function App() {
           console.error(parseError)
         }
         setNewOdaError(message)
+        setNewOdaSubmitting(false)
         return
       }
       const data = await response.json()
@@ -360,6 +368,7 @@ function App() {
 				await loadData()
 				setNewAmount('')
 				navigate('/dashboard')
+        setNewOdaSubmitting(false)
         return
       }
 
@@ -369,6 +378,8 @@ function App() {
     } catch (error) {
       console.error(error)
       setNewOdaError('حدث خطأ أثناء الاتصال بالخادم عند حفظ العهدة')
+    } finally {
+      setNewOdaSubmitting(false)
     }
   }
 
@@ -443,6 +454,10 @@ function App() {
       return
     }
 
+    if (isAddingInvoice) {
+      return
+    }
+
     const dateValue = invoiceDate || new Date().toISOString().slice(0, 10)
 
     const formData = new FormData()
@@ -460,6 +475,7 @@ function App() {
       headers.Authorization = `Bearer ${authToken}`
     }
 
+    setIsAddingInvoice(true)
     const response = await fetch(`${API_BASE_URL}/invoices`, {
       method: 'POST',
       headers,
@@ -467,6 +483,7 @@ function App() {
     })
 
     if (!response.ok) {
+      setIsAddingInvoice(false)
       return
     }
 
@@ -479,6 +496,7 @@ function App() {
     setInvoiceDate('')
     setInvoiceFile(null)
     setIsInvoiceModalOpen(false)
+    setIsAddingInvoice(false)
   }
 
 	if (view === 'login') {
@@ -573,6 +591,7 @@ function App() {
 				onBack={handleBack}
 				serverBaseUrl={SERVER_BASE_URL}
 				apiBaseUrl={API_BASE_URL}
+        isInvoiceSubmitting={isAddingInvoice}
         onLogout={handleLogout}
 			/>
 		)
@@ -591,6 +610,7 @@ function App() {
 				onChangeAmount={setNewAmount}
 				onSubmit={handleCreateOda}
 				onBack={handleBack}
+        isSubmitting={newOdaSubmitting}
         onLogout={handleLogout}
 			/>
 		)
