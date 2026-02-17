@@ -45,19 +45,26 @@ const createPasswordHashForSeed = (password) =>
     })
   })
 
-const ensureUser = async (username, password, fullName) => {
+const ensureUser = async (username, password, fullName, role, phoneNumber) => {
   const existing = await User.findOne({ username })
   if (existing) {
     return
   }
   const passwordHash = await createPasswordHashForSeed(password)
-  await User.create({ username, passwordHash, fullName })
+  await User.create({
+    username,
+    passwordHash,
+    fullName,
+    role: role || "employee",
+    phoneNumber: phoneNumber || "",
+  })
 }
 
 const seedUsers = async () => {
-  await ensureUser("dr.saud", "Aa@112233", "دكتور سعود العصيمي")
-  await ensureUser("Eng.Sameh", "Aa@112233", "مهندس سامح حافظ")
-  await ensureUser("Mr.Misheal", "Aa@112233", "استاذ مشعل العصيمي")
+  await ensureUser("dr.saud", "Aa@112233", "دكتور سعود العصيمي", "doctor", "")
+  await ensureUser("Eng.Sameh", "Aa@112233", "مهندس سامح حافظ", "engineer", "")
+  await ensureUser("Mr.Misheal", "Aa@112233", "استاذ مشعل العصيمي", "manager", "")
+  await ensureUser("accountant", "Aa@112233", "محاسب", "accountant", "")
 }
 
 export const initDatabase = async () => {

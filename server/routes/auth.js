@@ -41,7 +41,7 @@ const getJwtSecret = () => {
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, password, fullName } = req.body
+    const { username, password, fullName, phoneNumber, role, roleLabel } = req.body
 
     if (!username || !password) {
       res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبة" })
@@ -60,12 +60,18 @@ router.post("/register", async (req, res) => {
       username,
       passwordHash,
       fullName,
+      phoneNumber: phoneNumber || "",
+      role: role || "employee",
+      roleLabel: roleLabel || undefined,
     })
 
     res.status(201).json({
       id: user._id,
       username: user.username,
       fullName: user.fullName || "",
+      phoneNumber: user.phoneNumber || "",
+      role: user.role || "employee",
+      roleLabel: user.roleLabel || "",
     })
   } catch (error) {
     console.error(error)
@@ -116,6 +122,9 @@ router.post("/login", async (req, res) => {
         id: user._id,
         username: user.username,
         fullName: user.fullName || "",
+        phoneNumber: user.phoneNumber || "",
+        role: user.role || "employee",
+        roleLabel: user.roleLabel || "",
       },
     })
   } catch (error) {

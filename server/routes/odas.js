@@ -117,7 +117,7 @@ router.post("/", async (req, res) => {
       amount: parsedAmount,
       currentBalance: parsedAmount,
       closingBalance: 0,
-      status: "معلقة",
+      status: "بانتظار مراجعة المحاسب",
       closingDate: "",
     })
 
@@ -128,7 +128,7 @@ router.post("/", async (req, res) => {
       newAmount: parsedAmount,
       previousClosingBalance,
       transferAmount,
-      status: "معلقة",
+      status: "بانتظار مراجعة المحاسب",
     })
 
     await sendOdaSmsNotification(employee, transferAmount)
@@ -141,6 +141,58 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: "Failed to create oda" })
+  }
+})
+
+router.post("/:id/accountant-approve", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!id) {
+      res.status(400).json({ message: "Invalid oda id" })
+      return
+    }
+
+    const oda = await Oda.findOne({ id })
+    if (!oda) {
+      res.status(404).json({ message: "Oda not found" })
+      return
+    }
+
+    oda.status = "بانتظار موافقة الدكتور"
+    await oda.save()
+
+    await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مقبولة من المحاسب" })
+
+    res.json({ oda })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Failed to accept oda" })
+  }
+})
+
+router.post("/:id/accountant-reject", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!id) {
+      res.status(400).json({ message: "Invalid oda id" })
+      return
+    }
+
+    const oda = await Oda.findOne({ id })
+    if (!oda) {
+      res.status(404).json({ message: "Oda not found" })
+      return
+    }
+
+    oda.status = "مرفوضة من المحاسب"
+    await oda.save()
+
+    await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مرفوضة من المحاسب" })
+
+    res.json({ oda })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Failed to reject oda" })
   }
 })
 
@@ -176,38 +228,12 @@ router.post("/:id/accept", async (req, res) => {
       }
     }
 
-    await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مقبولة" })
+    await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مقبولة نهائياً" })
 
     res.json({ oda })
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: "Failed to accept oda" })
-  }
-})
-
-router.post("/:id/reject", async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-    if (!id) {
-      res.status(400).json({ message: "Invalid oda id" })
-      return
-    }
-
-    const oda = await Oda.findOne({ id })
-    if (!oda) {
-      res.status(404).json({ message: "Oda not found" })
-      return
-    }
-
-    oda.status = "مرفوضة"
-    await oda.save()
-
-    await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مرفوضة" })
-
-    res.json({ oda })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: "Failed to reject oda" })
   }
 })
 

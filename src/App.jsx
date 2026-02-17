@@ -33,15 +33,12 @@ function App() {
   const [odaEmployeeFilter, setOdaEmployeeFilter] = useState('all')
   const [odaRequests, setOdaRequests] = useState([])
 
-  const currentUsername = currentUser ? currentUser.username || '' : ''
-  const currentFullName = currentUser ? currentUser.fullName || '' : ''
+  const currentRole = currentUser ? currentUser.role || '' : ''
 
-  const isDoctorSaud =
-    currentUsername === 'dr.saud' || currentFullName === 'دكتور سعود العصيمي'
-  const isSameh =
-    currentUsername === 'Eng.Sameh' || currentFullName === SAMAH_EMPLOYEE_NAME
-  const isMishaal =
-    currentUsername === 'Mr.Misheal' || currentFullName === MISHAAL_EMPLOYEE_NAME
+  const isDoctorSaud = currentRole === 'doctor'
+  const isSameh = currentRole === 'engineer'
+  const isMishaal = currentRole === 'manager'
+  const isAccountant = currentRole === 'accountant'
 
   const hasPendingOdaRequestForCurrentUser = (() => {
     if (!currentUser) {
@@ -264,7 +261,11 @@ function App() {
 
   const handleApproveOdaRequest = async (odaId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/odas/${odaId}/accept`, {
+      const actionPath = isAccountant
+        ? `${API_BASE_URL}/odas/${odaId}/accountant-approve`
+        : `${API_BASE_URL}/odas/${odaId}/accept`
+
+      const response = await fetch(actionPath, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -281,7 +282,11 @@ function App() {
 
   const handleRejectOdaRequest = async (odaId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/odas/${odaId}/reject`, {
+      const actionPath = isAccountant
+        ? `${API_BASE_URL}/odas/${odaId}/accountant-reject`
+        : `${API_BASE_URL}/odas/${odaId}/reject`
+
+      const response = await fetch(actionPath, {
         method: 'POST',
         headers: getAuthHeaders(),
       })
@@ -745,7 +750,7 @@ function App() {
 
   if (view === 'odaRequests') {
     const filteredOdaRequests = odaRequests.filter((request) => {
-      if (isDoctorSaud) {
+      if (isDoctorSaud || isAccountant) {
         return true
       }
       if (isSameh) {
@@ -788,13 +793,15 @@ function App() {
                 <th>رصيد الإقفال السابق (ريال)</th>
                 <th>المبلغ المراد تحويله (ريال)</th>
                 <th>حالة الطلب</th>
-                {isDoctorSaud && <th>إجراءات</th>}
+                {(isDoctorSaud || isAccountant) && <th>إجراءات</th>}
               </tr>
             </thead>
             <tbody>
               {filteredOdaRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={isDoctorSaud ? 8 : 7}>لا توجد طلبات عهدة مسجلة حالياً</td>
+                  <td colSpan={isDoctorSaud || isAccountant ? 8 : 7}>
+                    لا توجد طلبات عهدة مسجلة حالياً
+                  </td>
                 </tr>
               ) : (
                 filteredOdaRequests.map((request) => (
@@ -806,9 +813,9 @@ function App() {
                     <td>{request.previousClosingBalance.toLocaleString('ar-SA')}</td>
                     <td>{request.transferAmount.toLocaleString('ar-SA')}</td>
                     <td>{request.status || 'معلقة'}</td>
-                    {isDoctorSaud && (
+                    {(isDoctorSaud || isAccountant) && (
                       <td>
-                        {request.status === 'معلقة' ? (
+                        {request.status === 'معلقة' || request.status === 'بانتظار مراجعة المحاسب' ? (
                           <div className="invoice-actions-cell">
                             <button
                               type="button"
@@ -816,6 +823,23 @@ function App() {
                               onClick={() => handleApproveOdaRequest(request.odaId)}
                             >
                               قبول
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => handleRejectOdaRequest(request.odaId)}
+                            >
+                              رفض
+                            </button>
+                          </div>
+                        ) : request.status === 'بانتظار موافقة الدكتور' && isDoctorSaud ? (
+                          <div className="invoice-actions-cell">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => handleApproveOdaRequest(request.odaId)}
+                            >
+                              موافقة نهائية
                             </button>
                             <button
                               type="button"
