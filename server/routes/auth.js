@@ -88,9 +88,11 @@ router.post("/send-code", async (req, res) => {
     const code = String(crypto.randomInt(100000, 999999))
     const otpHash = await createPasswordHash(code)
     const expires = new Date(Date.now() + 10 * 60 * 1000)
-    user.otpHash = otpHash
-    user.otpExpiresAt = expires
-    await user.save()
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { otpHash, otpExpiresAt: expires } },
+      { runValidators: false },
+    )
     await sendOtpSms(trimmed, code)
     res.json({ message: "تم إرسال رمز التحقق" })
   } catch (error) {
