@@ -1,40 +1,9 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 
-const initialOdas = [
-  {
-    id: 1,
-    employee: 'أحمد علي',
-    startDate: '2025-01-01',
-    amount: 5000,
-    currentBalance: 5000,
-    closingBalance: 0,
-    status: 'مفتوحة',
-    closingDate: '',
-  },
-  {
-    id: 2,
-    employee: 'محمد سعيد',
-    startDate: '2025-02-15',
-    amount: 20000,
-    currentBalance: 15000,
-    closingBalance: 5000,
-    status: 'مغلقة جزئياً',
-    closingDate: '',
-  },
-]
+const initialOdas = []
 
-const initialInvoices = [
-  {
-    id: 1,
-    odaId: 2,
-    date: '2025-02-20',
-    name: 'فاتورة تجهيز مكتب',
-    description: 'مصاريف تجهيز مكتب رئيسي',
-    projectName: 'مشروع المقر الرئيسي',
-    amount: 5000,
-  },
-]
+const initialInvoices = []
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 const SERVER_BASE_URL = API_BASE_URL.replace('/api', '')
