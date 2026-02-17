@@ -40,7 +40,7 @@ const getJwtSecret = () => {
   return undefined
 }
 
-const sendOtpSms = async (toPhone, code) => {
+const sendOtpSms = async (toPhone, code, purpose = "login") => {
   const env = globalThis.process && globalThis.process.env ? globalThis.process.env : undefined
   const secretKey = env ? env.DREAMS_SECRET_KEY : undefined
   if (!secretKey) {
@@ -50,7 +50,10 @@ const sendOtpSms = async (toPhone, code) => {
   const baseURL = "https://www.dreams.sa/index.php/api/sendsms"
   const user = "Eva_RealEstate"
   const sender = "Eva%20Aqar"
-  const message = `رمز التحقق للدخول إلى نظام العهدة: ${code}`
+  const message =
+    purpose === "approval"
+      ? `رمز التحقق لتأكيد الإجراء على طلب العهدة: ${code}`
+      : `رمز التحقق للدخول إلى نظام العهدة: ${code}`
   const encodedMessage = encodeURIComponent(message)
   const smsURL = `${baseURL}/?user=${user}&secret_key=${secretKey}&sender=${sender}&to=${toPhone}&message=${encodedMessage}`
   try {
@@ -74,7 +77,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/send-code", async (req, res) => {
   try {
-    const { phoneNumber } = req.body
+    const { phoneNumber, purpose } = req.body
     const trimmed = String(phoneNumber || "").trim()
     if (!trimmed) {
       res.status(400).json({ message: "رقم الجوال مطلوب" })
@@ -93,7 +96,7 @@ router.post("/send-code", async (req, res) => {
       { $set: { otpHash, otpExpiresAt: expires } },
       { runValidators: false },
     )
-    await sendOtpSms(trimmed, code)
+    await sendOtpSms(trimmed, code, String(purpose || "login"))
     res.json({ message: "تم إرسال رمز التحقق" })
   } catch (error) {
     console.error(error)

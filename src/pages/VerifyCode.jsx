@@ -13,6 +13,7 @@ export default function VerifyCodePage({
   const inputsRef = useRef([])
   const isSubmittingRef = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
   const code = useMemo(() => digits.join(''), [digits])
   const isReady = code.length === 6 && /^\d{6}$/.test(code)
   useEffect(() => {
@@ -191,12 +192,17 @@ export default function VerifyCodePage({
           <button
             type="button"
             className="secondary-button verify-resend"
-            disabled={resendCountdown > 0}
+            disabled={resendCountdown > 0 || isResending}
             onClick={async () => {
-              if (onResend && phoneNumber) {
-                await onResend(phoneNumber)
+              if (onResend && phoneNumber && !isResending) {
+                setIsResending(true)
+                try {
+                  await onResend(phoneNumber, 'login')
+                  setResendCountdown(30)
+                } finally {
+                  setIsResending(false)
+                }
               }
-              setResendCountdown(30)
             }}
           >
             {resendCountdown > 0 ? `إعادة إرسال (${resendCountdown})` : 'إعادة إرسال'}

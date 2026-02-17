@@ -236,12 +236,12 @@ function App() {
 	}, [authToken, currentUser])
 
 
-  const handleSendLoginCode = async (phoneNumber) => {
+  const handleSendLoginCode = async (phoneNumber, purpose = 'login') => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/send-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber }),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ phoneNumber, purpose }),
       })
       if (!response.ok) {
         return { ok: false }
@@ -258,7 +258,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ phoneNumber, code }),
       })
       if (!response.ok) {
@@ -286,7 +286,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ phoneNumber, code }),
       })
       if (!response.ok) {
@@ -332,6 +332,7 @@ function App() {
 
     const headers = {
       'Content-Type': 'application/json',
+      Accept: 'application/json',
       ...getAuthHeaders(),
     }
 
@@ -404,7 +405,7 @@ function App() {
 
       const response = await fetch(actionPath, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { Accept: 'application/json', ...getAuthHeaders() },
       })
 
       if (!response.ok) {
@@ -425,7 +426,7 @@ function App() {
 
       const response = await fetch(actionPath, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { Accept: 'application/json', ...getAuthHeaders() },
       })
 
       if (!response.ok) {
@@ -478,7 +479,7 @@ function App() {
     setIsAddingInvoice(true)
     const response = await fetch(`${API_BASE_URL}/invoices`, {
       method: 'POST',
-      headers,
+      headers: { Accept: 'application/json', ...headers },
       body: formData,
     })
 
@@ -515,7 +516,7 @@ function App() {
     return (
       <VerifyCodePage
         phoneNumber={pendingPhoneNumber}
-        onResend={handleSendLoginCode}
+        onResend={(phone) => handleSendLoginCode(phone, 'login')}
         onConfirm={handleLoginWithCode}
         onBack={() => navigate('/login')}
       />
@@ -622,13 +623,13 @@ function App() {
 				odaRequests={odaRequests}
 				isDoctorSaud={isDoctorSaud}
 				isAccountant={isAccountant}
-				isAccountant={isAccountant}
+
 				isSameh={isSameh}
 				isMishaal={isMishaal}
 				onApprove={handleApproveOdaRequest}
 				onReject={handleRejectOdaRequest}
 				onBack={() => navigate('/dashboard')}
-        onSendCode={handleSendLoginCode}
+        onSendCode={(phone) => handleSendLoginCode(phone, 'approval')}
         onVerifyCode={handleVerifyCodeSilent}
         accountantPhone={currentUser && currentUser.phoneNumber ? String(currentUser.phoneNumber) : ''}
         onLogout={handleLogout}

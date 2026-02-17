@@ -15,6 +15,12 @@ const ensureDatabase = () => {
 export default async function handler(req, res) {
   try {
     await ensureDatabase()
+    const originalUrl = req.url || "/"
+    req.url = originalUrl.startsWith("/api") ? originalUrl : `/api${originalUrl}`
+    if (req.method === "OPTIONS") {
+      res.status(204).end()
+      return
+    }
     return app(req, res)
   } catch (error) {
     console.error("Unhandled error in /api/odas/[id]/accept handler", error)
@@ -25,4 +31,3 @@ export default async function handler(req, res) {
     }
   }
 }
-

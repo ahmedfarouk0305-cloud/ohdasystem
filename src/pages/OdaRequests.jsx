@@ -44,6 +44,7 @@ const byPrefixAndName = {
 	const inputsRef = useRef([])
 	const isSubmittingRef = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
 	const code = useMemo(() => digits.join(''), [digits])
 	const isReady = code.length === 6 && /^\d{6}$/.test(code)
 
@@ -68,8 +69,8 @@ const byPrefixAndName = {
 		setDigits(['', '', '', '', '', ''])
 		setIsError(false)
 		setOtpOpen(true)
-		if (onSendCode && accountantPhone) {
-			await onSendCode(accountantPhone)
+    if (onSendCode && accountantPhone) {
+      await onSendCode(accountantPhone, 'approval')
 		}
 	}
 
@@ -334,12 +335,17 @@ const byPrefixAndName = {
 							<button
 								type="button"
 								className="secondary-button"
-								disabled={resendCountdown > 0}
+                disabled={resendCountdown > 0 || isResending}
 								onClick={async () => {
-									if (onSendCode && accountantPhone) {
-										await onSendCode(accountantPhone)
-									}
-									setResendCountdown(30)
+                  if (onSendCode && accountantPhone && !isResending) {
+                    setIsResending(true)
+                    try {
+                      await onSendCode(accountantPhone)
+                      setResendCountdown(30)
+                    } finally {
+                      setIsResending(false)
+                    }
+                  }
 								}}
 							>
 								{resendCountdown > 0 ? `إعادة إرسال (${resendCountdown})` : 'إعادة إرسال'}
