@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 
-const invoiceSchema = new mongoose.Schema(
+const replacementSchema = new mongoose.Schema(
   {
     id: { type: Number, required: true },
     odaId: { type: Number, required: true },
@@ -16,4 +16,4 @@ const invoiceSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-export default mongoose.model("Invoice", invoiceSchema)
+export default mongoose.model("Replacement", replacementSchema)

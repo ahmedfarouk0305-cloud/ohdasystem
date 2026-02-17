@@ -39,6 +39,14 @@ function App() {
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('')
   const [newOdaSubmitting, setNewOdaSubmitting] = useState(false)
   const [isAddingInvoice, setIsAddingInvoice] = useState(false)
+  const [replacementAmount, setReplacementAmount] = useState('')
+  const [replacementName, setReplacementName] = useState('')
+  const [replacementDescription, setReplacementDescription] = useState('')
+  const [replacementProjectName, setReplacementProjectName] = useState('')
+  const [replacementDate, setReplacementDate] = useState('')
+  const [replacementFile, setReplacementFile] = useState(null)
+  const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false)
+  const [isAddingReplacement, setIsAddingReplacement] = useState(false)
 
   const currentRole = currentUser ? currentUser.role || '' : ''
 
@@ -234,6 +242,21 @@ function App() {
 			window.removeEventListener('popstate', handlePopState)
 		}
 	}, [authToken, currentUser])
+  useEffect(() => {
+    try {
+      const base = SERVER_BASE_URL || ''
+      const url = `${base}/api/stream`
+      const es = new EventSource(url)
+      es.onmessage = () => {
+        loadData()
+      }
+      return () => {
+        es.close()
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }, [SERVER_BASE_URL])
 
   const safeJsonFetch = async (url, options = {}) => {
     const headers = { Accept: 'application/json', ...(options.headers || {}) }
@@ -539,7 +562,13 @@ function App() {
 			return null
 		}
 
-		const spentAmount = currentOda.amount - currentOda.currentBalance
+    const invoiceTotal = odaInvoices
+      .filter((inv) => inv.kind === 'invoice')
+      .reduce((sum, inv) => sum + Number(inv.amount || 0), 0)
+    const spentAmount = invoiceTotal
+    const replacementTotal = odaInvoices
+      .filter((inv) => inv.kind === 'replacement')
+      .reduce((sum, inv) => sum + Number(inv.amount || 0), 0)
 
     const canAddInvoice =
 			currentOda.status === 'مفتوحة' &&
@@ -572,12 +601,77 @@ function App() {
 				setIsInvoiceModalOpen(false)
 			}
 		}
+    const handleToggleReplacementModal = () => {
+      if (isDoctorSaud || isAccountant) {
+        return
+      }
+      if (!isReplacementModalOpen) {
+        const today = new Date().toISOString().slice(0, 10)
+        if (!replacementDate) {
+          setReplacementDate(today)
+        }
+        setIsReplacementModalOpen(true)
+      } else {
+        setIsReplacementModalOpen(false)
+      }
+    }
+    const handleAddReplacement = async (event) => {
+      event.preventDefault()
+      if (isDoctorSaud || isAccountant) {
+        return
+      }
+      if (!selectedOdaId || !replacementAmount || !replacementName) {
+        return
+      }
+      const amountNumber = Number(replacementAmount)
+      if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+        return
+      }
+      if (isAddingReplacement) {
+        return
+      }
+      const dateValue = replacementDate || new Date().toISOString().slice(0, 10)
+      const formData = new FormData()
+      formData.append('odaId', String(selectedOdaId))
+      formData.append('date', dateValue)
+      formData.append('name', replacementName)
+      formData.append('description', replacementDescription)
+      formData.append('projectName', replacementProjectName)
+      formData.append('amount', String(amountNumber))
+      if (replacementFile) {
+        formData.append('file', replacementFile)
+      }
+      const headers = {}
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`
+      }
+      setIsAddingReplacement(true)
+      const result = await safeJsonFetch(`${API_BASE_URL}/invoices/replacement`, {
+        method: 'POST',
+        headers: { Accept: 'application/json', ...headers },
+        body: formData,
+      })
+      if (!result.ok) {
+        setIsAddingReplacement(false)
+        return
+      }
+      await loadData()
+      setReplacementAmount('')
+      setReplacementName('')
+      setReplacementDescription('')
+      setReplacementProjectName('')
+      setReplacementDate('')
+      setReplacementFile(null)
+      setIsReplacementModalOpen(false)
+      setIsAddingReplacement(false)
+    }
 
 		return (
 			<OdaDetailsPage
 				currentOda={currentOda}
 				odaInvoices={odaInvoices}
 				spentAmount={spentAmount}
+        replacementTotal={replacementTotal}
 				canAddInvoice={canAddInvoice}
 				nextInvoiceId={nextInvoiceId}
 				invoiceName={invoiceName}
@@ -595,9 +689,25 @@ function App() {
 				onChangeInvoiceFile={setInvoiceFile}
 				onToggleInvoiceModal={handleToggleInvoiceModal}
 				onAddInvoice={handleAddInvoice}
+        onToggleReplacementModal={handleToggleReplacementModal}
+        isReplacementModalOpen={isReplacementModalOpen}
+        replacementName={replacementName}
+        replacementDescription={replacementDescription}
+        replacementAmount={replacementAmount}
+        replacementProjectName={replacementProjectName}
+        replacementDate={replacementDate}
+        replacementFile={replacementFile}
+        onChangeReplacementName={setReplacementName}
+        onChangeReplacementDescription={setReplacementDescription}
+        onChangeReplacementAmount={setReplacementAmount}
+        onChangeReplacementProjectName={setReplacementProjectName}
+        onChangeReplacementDate={setReplacementDate}
+        onChangeReplacementFile={setReplacementFile}
+        onAddReplacement={handleAddReplacement}
 				onBack={handleBack}
 				apiBaseUrl={API_BASE_URL}
         isInvoiceSubmitting={isAddingInvoice}
+        isReplacementSubmitting={isAddingReplacement}
         onLogout={handleLogout}
 			/>
 		)
