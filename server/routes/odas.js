@@ -47,7 +47,10 @@ const getPhonesByRole = async (role) => {
 
 const sendOdaSmsNotification = async (employee, transferAmount) => {
   const phones = await getPhonesByRole("accountant")
-  const message = `طلب ${employee} استعاضة عهدة. المبلغ المراد تحويله ${transferAmount}. يرجى المراجعة من خلال الرابط التالي : https://ohdasystem.vercel.app`
+  const publicUrl =
+    (globalThis.process && globalThis.process.env ? globalThis.process.env.PUBLIC_APP_URL : "") ||
+    "https://ohda.dashboard-evasaudi.com"
+  const message = `طلب ${employee} استعاضة عهدة. المبلغ المراد تحويله ${transferAmount}. يرجى المراجعة من خلال الرابط التالي : ${publicUrl}`
   for (const phone of phones) {
     await sendSms(phone, message)
   }
@@ -56,7 +59,10 @@ const sendOdaSmsNotification = async (employee, transferAmount) => {
 const sendDoctorSmsNotification = async (employee, odaId, employeeOdaNumber) => {
   const phones = await getPhonesByRole("doctor")
   const num = employeeOdaNumber || odaId
-  const message = `طلب عهدة للموظف ${employee} رقم ${num} تم اعتماده من المحاسب وهو بانتظار موافقة الدكتور. يرجى المراجعة من خلال الرابط التالي : https://ohdasystem.vercel.app`
+  const publicUrl =
+    (globalThis.process && globalThis.process.env ? globalThis.process.env.PUBLIC_APP_URL : "") ||
+    "https://ohda.dashboard-evasaudi.com"
+  const message = `طلب عهدة للموظف ${employee} رقم ${num} تم اعتماده من المحاسب وهو بانتظار موافقة الدكتور. يرجى المراجعة من خلال الرابط التالي : ${publicUrl}`
   for (const phone of phones) {
     await sendSms(phone, message)
   }
