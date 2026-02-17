@@ -236,14 +236,6 @@ router.post("/", async (req, res) => {
   }
 })
 
-router.options("/:id/accountant-approve", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*")
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
-  res.setHeader("Access-Control-Allow-Credentials", "true")
-  res.status(204).end()
-})
-
 router.post("/:id/accountant-approve", async (req, res) => {
   try {
     const id = Number(req.params.id)
@@ -285,14 +277,6 @@ router.post("/:id/accountant-approve", async (req, res) => {
   }
 })
 
-router.options("/:id/accountant-reject", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*")
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
-  res.setHeader("Access-Control-Allow-Credentials", "true")
-  res.status(204).end()
-})
-
 router.post("/:id/accountant-reject", async (req, res) => {
   try {
     const id = Number(req.params.id)
@@ -317,14 +301,6 @@ router.post("/:id/accountant-reject", async (req, res) => {
     console.error(error)
     res.status(500).json({ message: "Failed to reject oda" })
   }
-})
-
-router.options("/:id/reject", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*")
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
-  res.setHeader("Access-Control-Allow-Credentials", "true")
-  res.status(204).end()
 })
 
 router.post("/:id/reject", async (req, res) => {
@@ -354,14 +330,6 @@ router.post("/:id/reject", async (req, res) => {
 		console.error("Failed to reject oda by doctor", error)
 		res.status(500).json({ message: "Failed to reject oda" })
 	}
-})
-
-router.options("/:id/accept", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*")
-  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept")
-  res.setHeader("Access-Control-Allow-Credentials", "true")
-  res.status(204).end()
 })
 
 router.post("/:id/accept", async (req, res) => {

@@ -11,14 +11,8 @@ import User from "./models/User.js"
 
 const app = express()
  
-const corsOptions = {
-  origin: true,
-  credentials: true,
-  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-}
-app.use(cors(corsOptions))
-app.options(/.*/, cors(corsOptions))
+app.use(cors())
+app.options(/.*/, cors())
 app.use(express.json())
 
 const __filename = fileURLToPath(import.meta.url)
