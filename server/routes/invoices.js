@@ -67,11 +67,18 @@ router.get("/:id/download", async (req, res) => {
       return
     }
 
-    const filePath = path.join(uploadsRoot, invoice.fileName)
-
+    let filePath = path.join(uploadsRoot, invoice.fileName)
     if (!fs.existsSync(filePath)) {
-      res.status(404).json({ message: "Invoice file not found" })
-      return
+      const alt1 = path.join(__dirname, "uploads", invoice.fileName)
+      const alt2 = path.join(__dirname, "../uploads", invoice.fileName)
+      if (fs.existsSync(alt1)) {
+        filePath = alt1
+      } else if (fs.existsSync(alt2)) {
+        filePath = alt2
+      } else {
+        res.status(404).json({ message: "Invoice file not found" })
+        return
+      }
     }
 
     const downloadName = invoice.originalFileName || invoice.fileName
@@ -105,11 +112,18 @@ router.get("/view/:id", async (req, res) => {
       return
     }
 
-    const filePath = path.join(uploadsRoot, invoice.fileName)
-
+    let filePath = path.join(uploadsRoot, invoice.fileName)
     if (!fs.existsSync(filePath)) {
-      res.status(404).json({ message: "Invoice file not found" })
-      return
+      const alt1 = path.join(__dirname, "uploads", invoice.fileName)
+      const alt2 = path.join(__dirname, "../uploads", invoice.fileName)
+      if (fs.existsSync(alt1)) {
+        filePath = alt1
+      } else if (fs.existsSync(alt2)) {
+        filePath = alt2
+      } else {
+        res.status(404).json({ message: "Invoice file not found" })
+        return
+      }
     }
 
     res.setHeader("Content-Type", "application/pdf")
