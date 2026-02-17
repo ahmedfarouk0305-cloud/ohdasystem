@@ -10,9 +10,9 @@ import authRouter from "./routes/auth.js"
 import User from "./models/User.js"
 
 const app = express()
-
+ 
 app.use(cors())
-app.options("/*", cors());
+app.options(/.*/, cors())
 app.use(express.json())
 
 const __filename = fileURLToPath(import.meta.url)
