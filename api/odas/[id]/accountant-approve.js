@@ -18,8 +18,11 @@ export default async function handler(req, res) {
     const originalUrl = req.url || "/"
     req.url = originalUrl.startsWith("/api") ? originalUrl : `/api${originalUrl}`
     if (req.method === "OPTIONS") {
-      res.status(204).end()
-      return
+    res.setHeader("Access-Control-Allow-Origin", "*")
+    res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    res.status(204).end()
+    return
     }
     return app(req, res)
   } catch (error) {
