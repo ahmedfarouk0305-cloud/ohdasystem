@@ -9,6 +9,7 @@ export default function OdaDetailsPage({
 	invoiceAmount,
 	invoiceProjectName,
 	invoiceDate,
+  invoiceFile,
 	isInvoiceModalOpen,
 	onChangeInvoiceName,
 	onChangeInvoiceDescription,
@@ -19,7 +20,6 @@ export default function OdaDetailsPage({
 	onToggleInvoiceModal,
 	onAddInvoice,
 	onBack,
-	serverBaseUrl,
 	apiBaseUrl,
   onLogout,
   isInvoiceSubmitting,
@@ -32,9 +32,11 @@ export default function OdaDetailsPage({
 		<div className="dashboard">
 			<div className="page-logo">
 				<img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
-        <button type="button" className="secondary-button logout-button" onClick={onLogout}>
-          تسجيل الخروج
-        </button>
+        {!isInvoiceModalOpen && (
+          <button type="button" className="secondary-button logout-button" onClick={onLogout}>
+            تسجيل الخروج
+          </button>
+        )}
 			</div>
 			<header className="dashboard-header">
 				<div className="oda-header-title">
@@ -130,8 +132,8 @@ export default function OdaDetailsPage({
 						) : (
 							odaInvoices.map((invoice) => {
 								const hasFile = Boolean(invoice.fileName)
-								const fileUrl = hasFile
-									? `${serverBaseUrl}/uploads/${invoice.fileName}`
+								const viewUrl = hasFile
+									? `${apiBaseUrl}/invoices/view/${invoice.id}`
 									: ''
 								const downloadUrl = `${apiBaseUrl}/invoices/${invoice.id}/download`
 
@@ -139,14 +141,14 @@ export default function OdaDetailsPage({
 									if (!hasFile) {
 										return
 									}
-									window.open(fileUrl, '_blank', 'noopener,noreferrer')
+									window.open(viewUrl, '_blank', 'noopener,noreferrer')
 								}
 
 								const handleShare = () => {
 									if (!hasFile) {
 										return
 									}
-									const shareUrl = fileUrl
+									const shareUrl = viewUrl
 									if (navigator.share) {
 										navigator
 											.share({
@@ -180,7 +182,7 @@ export default function OdaDetailsPage({
 												disabled={!hasFile}
 												aria-label="عرض الفاتورة"
 											>
-												🧾
+												👁
 											</button>
 											<button
 												type="button"
@@ -273,25 +275,6 @@ export default function OdaDetailsPage({
 								<div className="document-actions">
 									<input
 										type="file"
-										accept="image/*"
-										capture="environment"
-										className="hidden-file-input"
-										id="camera-file-input"
-										onChange={async (event) => {
-											const file = event.target.files && event.target.files[0]
-											if (!file) {
-												return
-											}
-											const imageBitmap = await createImageBitmap(file)
-											const cropped = await autoCropImage(imageBitmap)
-											const jpegBlob = await canvasToJpegBlob(cropped, 0.92)
-											const pdfBlob = generatePdfFromJpegBlob(jpegBlob, cropped.width, cropped.height)
-											const pdfFile = new File([pdfBlob], `invoice_${Date.now()}.pdf`, { type: 'application/pdf' })
-											onChangeInvoiceFile(pdfFile)
-										}}
-									/>
-									<input
-										type="file"
 										accept="application/pdf,image/*"
 										className="hidden-file-input"
 										id="file-picker-input"
@@ -312,18 +295,7 @@ export default function OdaDetailsPage({
 											onChangeInvoiceFile(pdfFile)
 										}}
 									/>
-									<button
-										type="button"
-										className="secondary-button mobile-only"
-										onClick={() => {
-											const el = document.getElementById('camera-file-input')
-											if (el) {
-												el.click()
-											}
-										}}
-									>
-										التقاط بالكاميرا
-									</button>
+									
 									<button
 										type="button"
 										className="secondary-button"
@@ -336,6 +308,9 @@ export default function OdaDetailsPage({
 									>
 										اختيار ملف
 									</button>
+                  <span className="file-name-indicator">
+                    {invoiceFile ? `الملف المختار: ${invoiceFile.name}` : 'لم يتم اختيار ملف بعد'}
+                  </span>
 								</div>
 							</div>
 							<div className="modal-actions modal-actions-cancel">

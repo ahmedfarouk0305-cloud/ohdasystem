@@ -596,7 +596,6 @@ function App() {
 				onToggleInvoiceModal={handleToggleInvoiceModal}
 				onAddInvoice={handleAddInvoice}
 				onBack={handleBack}
-				serverBaseUrl={SERVER_BASE_URL}
 				apiBaseUrl={API_BASE_URL}
         isInvoiceSubmitting={isAddingInvoice}
         onLogout={handleLogout}

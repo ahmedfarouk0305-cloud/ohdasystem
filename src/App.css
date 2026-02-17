@@ -2,6 +2,7 @@
 	max-width: 1200px;
 	margin: 0 auto;
 	padding: 2rem;
+  padding-bottom: calc(6.25rem + env(safe-area-inset-bottom));
 }
 
 .dashboard {
@@ -20,6 +21,15 @@
 
 .app-logo {
 	height: 120px;
+}
+
+.logout-button {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 1rem;
+  right: 1rem;
+  z-index: 999;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 .login-page {
@@ -434,6 +444,12 @@
 
 .icon-button:hover {
   background-color: #f3f4f6;
+}
+
+.icon-button-view,
+.icon-button-share,
+.icon-button-download {
+  color: #0f766e;
 }
 
 .icon-button-approve,

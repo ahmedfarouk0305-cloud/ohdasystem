@@ -91,6 +91,45 @@ router.get("/:id/download", async (req, res) => {
   }
 })
 
+router.get("/view/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    if (!id) {
+      res.status(400).json({ message: "Invalid invoice id" })
+      return
+    }
+
+    const invoice = await Invoice.findOne({ id })
+    if (!invoice || !invoice.fileName) {
+      res.status(404).json({ message: "Invoice file not found" })
+      return
+    }
+
+    const filePath = path.join(uploadsRoot, invoice.fileName)
+
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ message: "Invoice file not found" })
+      return
+    }
+
+    res.setHeader("Content-Type", "application/pdf")
+    res.setHeader("Content-Disposition", "inline")
+    res.sendFile(filePath, (error) => {
+      if (error) {
+        console.error(error)
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Failed to view invoice file" })
+        }
+      }
+    })
+  } catch (error) {
+    console.error(error)
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to view invoice file" })
+    }
+  }
+})
+
 router.post("/", upload.single("file"), async (req, res) => {
   try {
     const authHeader = req.headers.authorization || ""
