@@ -235,15 +235,25 @@ function App() {
 		}
 	}, [authToken, currentUser])
 
+  const safeJsonFetch = async (url, options = {}) => {
+    const headers = { Accept: 'application/json', ...(options.headers || {}) }
+    const res = await fetch(url, { ...options, headers })
+    const ct = res.headers.get('content-type') || ''
+    let data = null
+    if (ct.includes('application/json')) {
+      data = await res.json()
+    }
+    return { ok: res.ok, status: res.status, headers: res.headers, data, response: res }
+  }
 
   const handleSendLoginCode = async (phoneNumber, purpose = 'login') => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/send-code`, {
+      const result = await safeJsonFetch(`${API_BASE_URL}/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ phoneNumber, purpose }),
       })
-      if (!response.ok) {
+      if (!result.ok) {
         return { ok: false }
       }
       setPendingPhoneNumber(String(phoneNumber))
@@ -256,15 +266,15 @@ function App() {
 
   const handleLoginWithCode = async (phoneNumber, code) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
+      const result = await safeJsonFetch(`${API_BASE_URL}/auth/login-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ phoneNumber, code }),
       })
-      if (!response.ok) {
+      if (!result.ok) {
         return { ok: false }
       }
-      const data = await response.json()
+      const data = result.data || {}
       setAuthToken(data.token)
       setCurrentUser(data.user)
       try {
@@ -284,12 +294,12 @@ function App() {
 
   const handleVerifyCodeSilent = async (phoneNumber, code) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
+      const result = await safeJsonFetch(`${API_BASE_URL}/auth/login-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ phoneNumber, code }),
       })
-      if (!response.ok) {
+      if (!result.ok) {
         return { ok: false }
       }
       return { ok: true }
@@ -340,7 +350,7 @@ function App() {
 
     try {
       setNewOdaSubmitting(true)
-      const response = await fetch(`${API_BASE_URL}/odas`, {
+      const result = await safeJsonFetch(`${API_BASE_URL}/odas`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -349,21 +359,17 @@ function App() {
         }),
       })
 
-      if (!response.ok) {
+      if (!result.ok) {
         let message = 'تعذر حفظ العهدة، تأكد من الاتصال وحاول مرة أخرى'
-        try {
-          const data = await response.json()
-          if (data && typeof data.message === 'string' && data.message) {
-            message = data.message
-          }
-        } catch (parseError) {
-          console.error(parseError)
+        const data = result.data
+        if (data && typeof data.message === 'string' && data.message) {
+          message = data.message
         }
         setNewOdaError(message)
         setNewOdaSubmitting(false)
         return
       }
-      const data = await response.json()
+      const data = result.data
 
       if (!data || !data.oda) {
 				await loadData()
@@ -403,12 +409,12 @@ function App() {
         ? `${API_BASE_URL}/odas/${odaId}/accountant-approve`
         : `${API_BASE_URL}/odas/${odaId}/accept`
 
-      const response = await fetch(actionPath, {
+      const result = await safeJsonFetch(actionPath, {
         method: 'POST',
         headers: { Accept: 'application/json', ...getAuthHeaders() },
       })
 
-      if (!response.ok) {
+      if (!result.ok) {
         return
       }
 
@@ -424,12 +430,12 @@ function App() {
         ? `${API_BASE_URL}/odas/${odaId}/accountant-reject`
         : `${API_BASE_URL}/odas/${odaId}/reject`
 
-      const response = await fetch(actionPath, {
+      const result = await safeJsonFetch(actionPath, {
         method: 'POST',
         headers: { Accept: 'application/json', ...getAuthHeaders() },
       })
 
-      if (!response.ok) {
+      if (!result.ok) {
         return
       }
 
@@ -477,13 +483,13 @@ function App() {
     }
 
     setIsAddingInvoice(true)
-    const response = await fetch(`${API_BASE_URL}/invoices`, {
+    const result = await safeJsonFetch(`${API_BASE_URL}/invoices`, {
       method: 'POST',
       headers: { Accept: 'application/json', ...headers },
       body: formData,
     })
 
-    if (!response.ok) {
+    if (!result.ok) {
       setIsAddingInvoice(false)
       return
     }
