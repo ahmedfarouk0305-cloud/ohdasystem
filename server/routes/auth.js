@@ -99,6 +99,21 @@ router.post("/send-code", async (req, res) => {
   }
 })
 
+router.options("/send-code", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*")
+  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+  res.status(204).end()
+})
+
+router.all("/send-code", (req, res) => {
+  if (req.method !== "POST" && req.method !== "OPTIONS") {
+    res.setHeader("Allow", "POST,OPTIONS")
+    res.status(405).json({ message: "Method Not Allowed" })
+    return
+  }
+})
+
 router.post("/login-code", async (req, res) => {
   try {
     const { phoneNumber, code } = req.body
@@ -151,6 +166,21 @@ router.post("/login-code", async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ message: "فشل تسجيل الدخول برمز التحقق" })
+  }
+})
+
+router.options("/login-code", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*")
+  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS")
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+  res.status(204).end()
+})
+
+router.all("/login-code", (req, res) => {
+  if (req.method !== "POST" && req.method !== "OPTIONS") {
+    res.setHeader("Allow", "POST,OPTIONS")
+    res.status(405).json({ message: "Method Not Allowed" })
+    return
   }
 })
 
