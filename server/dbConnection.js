@@ -8,7 +8,7 @@ export const connection = async () => {
     let uri = globalThis.process && globalThis.process.env ? globalThis.process.env.MONGO_URI : undefined
 
     const needsSrvResolve = typeof uri === "string" && uri.startsWith("mongodb+srv://")
-    if (needsSrvResolve && !isVercel) {
+    if (needsSrvResolve) {
       try {
         const m = uri.match(/^mongodb\+srv:\/\/([^:]+):([^@]+)@([^/?]+)(\/[^?]*)?(?:\?(.*))?$/)
         if (m) {
