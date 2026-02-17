@@ -4,6 +4,7 @@ const odaRequestSchema = new mongoose.Schema(
   {
     odaId: { type: Number, required: true },
     employee: { type: String, required: true },
+    employeeOdaNumber: { type: Number, default: 0 },
     requestDate: { type: String, required: true },
     newAmount: { type: Number, required: true },
     previousClosingBalance: { type: Number, required: true },
@@ -14,4 +15,3 @@ const odaRequestSchema = new mongoose.Schema(
 )
 
 export default mongoose.model("OdaRequest", odaRequestSchema)
-

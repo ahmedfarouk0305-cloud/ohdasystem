@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import LoginPage from './pages/Login'
+import VerifyCodePage from './pages/VerifyCode'
+import OdaDetailsPage from './pages/OdaDetails'
+import NewOdaPage from './pages/NewOda'
+import OdaRequestsPage from './pages/OdaRequests'
+import DashboardPage from './pages/Dashboard'
 
 const initialOdas = []
 
@@ -11,13 +17,11 @@ const SAMAH_EMPLOYEE_NAME = 'مهندس سامح حافظ'
 const MISHAAL_EMPLOYEE_NAME = 'استاذ مشعل العصيمي'
 
 function App() {
-  const [odas, setOdas] = useState(initialOdas)
-  const [view, setView] = useState('login')
+	const [odas, setOdas] = useState(initialOdas)
+	const [view, setView] = useState('login')
+	const [currentPath, setCurrentPath] = useState(typeof window !== 'undefined' ? window.location.pathname || '/' : '/')
   const [authToken, setAuthToken] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
-  const [loginUsername, setLoginUsername] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [authError, setAuthError] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newOdaError, setNewOdaError] = useState('')
   const [selectedOdaId, setSelectedOdaId] = useState(null)
@@ -32,6 +36,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [odaEmployeeFilter, setOdaEmployeeFilter] = useState('all')
   const [odaRequests, setOdaRequests] = useState([])
+  const [pendingPhoneNumber, setPendingPhoneNumber] = useState('')
 
   const currentRole = currentUser ? currentUser.role || '' : ''
 
@@ -40,17 +45,23 @@ function App() {
   const isMishaal = currentRole === 'manager'
   const isAccountant = currentRole === 'accountant'
 
-  const hasPendingOdaRequestForCurrentUser = (() => {
-    if (!currentUser) {
-      return false
-    }
-    const employeeName = currentUser.fullName || currentUser.username
-    return odaRequests.some(
-      (request) =>
-        request.employee === employeeName &&
-        (request.status === 'معلقة' || !request.status),
-    )
-  })()
+	const hasPendingOdaRequestForCurrentUser = (() => {
+		if (!currentUser) {
+			return false
+		}
+		const employeeName = currentUser.fullName || currentUser.email
+		return odaRequests.some((request) => {
+			if (request.employee !== employeeName) {
+				return false
+			}
+			const status = request.status || 'معلقة'
+			return (
+				status === 'معلقة' ||
+				status === 'بانتظار مراجعة المحاسب' ||
+				status === 'مقبولة من المحاسب'
+			)
+		})
+	})()
 
   const getAuthHeaders = () => {
     const headers = {}
@@ -60,10 +71,18 @@ function App() {
     return headers
   }
 
-  const lastId = odas.length ? odas[odas.length - 1].id : 0
-  const nextId = lastId + 1
+  const employeeNameForNumber = currentUser ? (currentUser.fullName || currentUser.email) : ''
+  const employeeOdas = employeeNameForNumber ? odas.filter((o) => o.employee === employeeNameForNumber) : []
+  const usedNumbers = new Set(employeeOdas
+    .filter((o) => String(o.status || '').startsWith('مرفوضة') === false)
+    .map((o) => Number(o.employeeOdaNumber || 0))
+    .filter((n) => n > 0))
+  let nextId = 1
+  while (usedNumbers.has(nextId)) {
+    nextId += 1
+  }
 
-  const loadData = async () => {
+	const loadData = async () => {
     setIsLoading(true)
     try {
       const [odasResponse, invoicesResponse, odaRequestsResponse] = await Promise.all([
@@ -93,65 +112,148 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    try {
-      const storedToken = window.localStorage.getItem('authToken')
-      const storedUser = window.localStorage.getItem('authUser')
-
-      if (storedToken) {
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser)
-            setAuthToken(storedToken)
-            setCurrentUser(parsedUser)
-            setView('dashboard')
-            loadData()
-            return
-          } catch (parseError) {
-            console.error(parseError)
-          }
-        }
-
-        window.localStorage.removeItem('authToken')
-        window.localStorage.removeItem('authUser')
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }, [])
-
-  const handleLogin = async (event) => {
-    event.preventDefault()
-    setAuthError('')
-
-    if (!loginUsername || !loginPassword) {
-      setAuthError('الرجاء إدخال اسم المستخدم وكلمة المرور')
-      return
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: loginUsername,
-          password: loginPassword,
-        }),
-      })
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          setAuthError('بيانات الدخول غير صحيحة')
-        } else {
-          setAuthError('تعذر تسجيل الدخول، حاول مرة أخرى')
-        }
+	const navigate = (path) => {
+		if (typeof window !== 'undefined' && window.location.pathname !== path) {
+			window.history.pushState({}, '', path)
+		}
+		setCurrentPath(path)
+		if (path === '/login') {
+			setView('login')
+			return
+		}
+		if (path === '/verify-code') {
+			setView('verifyCode')
+			return
+		}
+		if (path === '/oda-requests') {
+			setView('odaRequests')
+			return
+		}
+		if (path === '/new-oda') {
+      if (!(isSameh || isMishaal) || isDoctorSaud || isAccountant || hasPendingOdaRequestForCurrentUser) {
+        setView('dashboard')
         return
       }
+      setView('newOda')
+      return
+		}
+		if (path.startsWith('/odas/')) {
+			const idPart = path.slice('/odas/'.length)
+			const parsedId = Number(idPart)
+			if (!Number.isNaN(parsedId)) {
+				setSelectedOdaId(parsedId)
+				setView('odaDetails')
+				return
+			}
+		}
+		setView('dashboard')
+	}
 
+	useEffect(() => {
+		try {
+			const storedToken = window.localStorage.getItem('authToken')
+			const storedUser = window.localStorage.getItem('authUser')
+
+			if (storedToken && storedUser) {
+				try {
+					const parsedUser = JSON.parse(storedUser)
+					setAuthToken(storedToken)
+					setCurrentUser(parsedUser)
+					loadData()
+				} catch (parseError) {
+					console.error(parseError)
+					window.localStorage.removeItem('authToken')
+					window.localStorage.removeItem('authUser')
+				}
+			}
+			if (!storedToken || !storedUser) {
+				navigate('/login')
+			} else {
+				navigate(currentPath || '/')
+			}
+		} catch (error) {
+			console.error(error)
+		}
+	}, [])
+
+	useEffect(() => {
+		if (!globalThis.window) {
+			return
+		}
+		const handlePopState = () => {
+			const path = window.location.pathname || '/'
+			setCurrentPath(path)
+			if (!authToken || !currentUser) {
+				setView('login')
+				return
+			}
+			if (path === '/login') {
+				setView('login')
+				return
+			}
+			if (path === '/verify-code') {
+				setView('verifyCode')
+				return
+			}
+			if (path === '/oda-requests') {
+				setView('odaRequests')
+				return
+			}
+			if (path === '/new-oda') {
+        if (!(isSameh || isMishaal) || isDoctorSaud || isAccountant || hasPendingOdaRequestForCurrentUser) {
+          setView('dashboard')
+          return
+        }
+        setView('newOda')
+        return
+			}
+			if (path.startsWith('/odas/')) {
+				const idPart = path.slice('/odas/'.length)
+				const parsedId = Number(idPart)
+				if (!Number.isNaN(parsedId)) {
+					setSelectedOdaId(parsedId)
+					setView('odaDetails')
+					return
+				}
+			}
+			setView('dashboard')
+		}
+		window.addEventListener('popstate', handlePopState)
+		return () => {
+			window.removeEventListener('popstate', handlePopState)
+		}
+	}, [authToken, currentUser])
+
+
+  const handleSendLoginCode = async (phoneNumber) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+      })
+      if (!response.ok) {
+        return { ok: false }
+      }
+      setPendingPhoneNumber(String(phoneNumber))
+      return { ok: true }
+    } catch (error) {
+      console.error(error)
+      return { ok: false }
+    }
+  }
+
+  const handleLoginWithCode = async (phoneNumber, code) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, code }),
+      })
+      if (!response.ok) {
+        return { ok: false }
+      }
       const data = await response.json()
-
       setAuthToken(data.token)
       setCurrentUser(data.user)
       try {
@@ -160,23 +262,38 @@ function App() {
       } catch (error) {
         console.error(error)
       }
-
-      setView('dashboard')
+      navigate('/dashboard')
       await loadData()
-      setLoginUsername('')
-      setLoginPassword('')
+      return { ok: true }
     } catch (error) {
       console.error(error)
-      setAuthError('حدث خطأ أثناء الاتصال بالخادم')
+      return { ok: false }
     }
   }
 
-  const handleOpenOdaDetails = (id) => {
-    setSelectedOdaId(id)
-    setView('odaDetails')
+  const handleVerifyCodeSilent = async (phoneNumber, code) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, code }),
+      })
+      if (!response.ok) {
+        return { ok: false }
+      }
+      return { ok: true }
+    } catch (error) {
+      console.error(error)
+      return { ok: false }
+    }
   }
 
-  const handleCreateOda = async (event) => {
+	const handleOpenOdaDetails = (id) => {
+		setSelectedOdaId(id)
+		navigate(`/odas/${id}`)
+  }
+
+	const handleCreateOda = async (event) => {
     event.preventDefault()
 
     setNewOdaError('')
@@ -192,9 +309,9 @@ function App() {
       return
     }
 
-    if (!currentUser) {
-      setNewOdaError('انتهت جلسة الدخول، الرجاء إعادة تسجيل الدخول')
-      setView('login')
+			if (!currentUser) {
+				setNewOdaError('انتهت جلسة الدخول، الرجاء إعادة تسجيل الدخول')
+				navigate('/login')
       return
     }
 
@@ -203,7 +320,7 @@ function App() {
       ...getAuthHeaders(),
     }
 
-    const employeeName = currentUser.fullName || currentUser.username
+    const employeeName = currentUser.fullName || currentUser.email
 
     try {
       const response = await fetch(`${API_BASE_URL}/odas`, {
@@ -231,26 +348,26 @@ function App() {
       const data = await response.json()
 
       if (!data || !data.oda) {
-        await loadData()
-        setNewAmount('')
-        setView('dashboard')
+				await loadData()
+				setNewAmount('')
+				navigate('/dashboard')
         return
       }
 
-      await loadData()
-      setNewAmount('')
-      setView('odaRequests')
+			await loadData()
+			setNewAmount('')
+			navigate('/oda-requests')
     } catch (error) {
       console.error(error)
       setNewOdaError('حدث خطأ أثناء الاتصال بالخادم عند حفظ العهدة')
     }
   }
 
-  const handleLogout = () => {
+	const handleLogout = () => {
     setAuthToken('')
     setCurrentUser(null)
     setSelectedOdaId(null)
-    setView('login')
+		navigate('/login')
     try {
       window.localStorage.removeItem('authToken')
       window.localStorage.removeItem('authUser')
@@ -259,7 +376,7 @@ function App() {
     }
   }
 
-  const handleApproveOdaRequest = async (odaId) => {
+	const handleApproveOdaRequest = async (odaId) => {
     try {
       const actionPath = isAccountant
         ? `${API_BASE_URL}/odas/${odaId}/accountant-approve`
@@ -280,7 +397,7 @@ function App() {
     }
   }
 
-  const handleRejectOdaRequest = async (odaId) => {
+	const handleRejectOdaRequest = async (odaId) => {
     try {
       const actionPath = isAccountant
         ? `${API_BASE_URL}/odas/${odaId}/accountant-reject`
@@ -301,8 +418,12 @@ function App() {
     }
   }
 
-  const handleAddInvoice = async (event) => {
+	const handleAddInvoice = async (event) => {
     event.preventDefault()
+
+    if (isDoctorSaud || isAccountant) {
+      return
+    }
 
     if (!selectedOdaId || !invoiceAmount || !invoiceName || !invoiceFile) {
       return
@@ -351,651 +472,186 @@ function App() {
     setIsInvoiceModalOpen(false)
   }
 
-  if (view === 'login') {
+	if (view === 'login') {
+		return (
+			<LoginPage
+        onSendCode={handleSendLoginCode}
+        onOpenVerify={(phone) => {
+          setPendingPhoneNumber(String(phone))
+          navigate('/verify-code')
+        }}
+			/>
+		)
+	}
+
+  if (view === 'verifyCode') {
     return (
-      <div className="dashboard">
-        <div className="page-logo">
-          <img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
-        </div>
-        <section className="card login-card">
-          <h2>تسجيل الدخول للنظام</h2>
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="form-row">
-              <label>اسم المستخدم</label>
-              <input
-                type="text"
-                value={loginUsername}
-                onChange={(event) => setLoginUsername(event.target.value)}
-              />
-            </div>
-            <div className="form-row">
-              <label>كلمة المرور</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(event) => setLoginPassword(event.target.value)}
-              />
-            </div>
-            {authError && <p className="login-error">{authError}</p>}
-            <div className="form-actions login-actions">
-              <button type="submit" className="primary-button">
-                دخول
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
+      <VerifyCodePage
+        phoneNumber={pendingPhoneNumber}
+        onResend={handleSendLoginCode}
+        onConfirm={handleLoginWithCode}
+        onBack={() => navigate('/login')}
+      />
     )
   }
 
-  if (view === 'odaDetails' && selectedOdaId != null) {
-    const currentOda = odas.find((oda) => oda.id === selectedOdaId)
-    const odaInvoices = invoices.filter(
-      (invoice) => invoice.odaId === selectedOdaId,
-    )
+	if (view === 'odaDetails' && selectedOdaId != null) {
+		const currentOda = odas.find((oda) => oda.id === selectedOdaId)
+		const odaInvoices = invoices.filter(
+			(invoice) => invoice.odaId === selectedOdaId,
+		)
 
-    if (!currentOda) {
-      return null
-    }
+		if (!currentOda) {
+			return null
+		}
 
-    const spentAmount = currentOda.amount - currentOda.currentBalance
+		const spentAmount = currentOda.amount - currentOda.currentBalance
 
     const canAddInvoice =
-      currentOda.status === 'مفتوحة' &&
-      ((isSameh && currentOda.employee === SAMAH_EMPLOYEE_NAME) ||
-        (isMishaal && currentOda.employee === MISHAAL_EMPLOYEE_NAME) ||
-        (!isDoctorSaud && !isSameh && !isMishaal))
+			currentOda.status === 'مفتوحة' &&
+      !isDoctorSaud &&
+      !isAccountant &&
+			((isSameh && currentOda.employee === SAMAH_EMPLOYEE_NAME) ||
+				(isMishaal && currentOda.employee === MISHAAL_EMPLOYEE_NAME) ||
+				(!isSameh && !isMishaal))
 
-    const lastInvoiceForOdaId = odaInvoices.length
-      ? odaInvoices[odaInvoices.length - 1].id
-      : 0
-    const nextInvoiceId = lastInvoiceForOdaId + 1
+		const lastInvoiceForOdaId = odaInvoices.length
+			? odaInvoices[odaInvoices.length - 1].id
+			: 0
+		const nextInvoiceId = lastInvoiceForOdaId + 1
 
-    return (
-      <div className="dashboard">
-        <div className="page-logo">
-          <img
-            src="/لوجو فقط png.png"
-            alt="شعار الشركة"
-            className="app-logo"
-          />
+		const handleBack = () => {
+			navigate('/dashboard')
+		}
 
-        </div>
-        <header className="dashboard-header">
-          <div className="oda-header-title">
-            <button
-              type="button"
-              onClick={() => setView('dashboard')}
-              className="back-icon-button"
-              aria-label="رجوع لقائمة العهد"
-            >
-              ←
-            </button>
-            <h1>تفاصيل العهدة رقم {currentOda.id}</h1>
-          </div>
-        </header>
-
-        <section className="card oda-summary">
-          <div className="oda-summary-grid">
-            <div className="summary-item">
-              <div className="summary-label">الموظف</div>
-              <div className="summary-value">{currentOda.employee}</div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">الرصيد الافتتاحي</div>
-              <div className="summary-value">
-                {currentOda.amount.toLocaleString('ar-SA')} ريال
-              </div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">المصروف حتى الآن</div>
-              <div className="summary-value">
-                {spentAmount.toLocaleString('ar-SA')} ريال
-              </div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">الرصيد الحالي</div>
-              <div className="summary-value">
-                {currentOda.currentBalance.toLocaleString('ar-SA')} ريال
-              </div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">رصيد الإقفال</div>
-              <div className="summary-value">
-                {currentOda.closingBalance.toLocaleString('ar-SA')} ريال
-              </div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">الحالة</div>
-              <div className="summary-value">{currentOda.status}</div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">تاريخ البداية</div>
-              <div className="summary-value">{currentOda.startDate}</div>
-            </div>
-            <div className="summary-item">
-              <div className="summary-label">تاريخ الإغلاق</div>
-              <div className="summary-value">
-                {currentOda.closingDate || '-'}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="card oda-invoices">
-          <div className="oda-invoices-header">
-            <h2>فواتير العهدة</h2>
-            {canAddInvoice && (
-              <button
-                type="button"
-                className="primary-button"
-                onClick={() => {
-                  const today = new Date().toISOString().slice(0, 10)
-                  if (!invoiceDate) {
-                    setInvoiceDate(today)
-                  }
-                  setIsInvoiceModalOpen(true)
-                }}
-              >
-                إضافة فاتورة
-              </button>
-            )}
-          </div>
-
-          <table className="oda-table">
-            <thead>
-              <tr>
-                <th>رقم الفاتورة</th>
-                <th>اسم الفاتورة</th>
-                <th>تاريخ الفاتورة</th>
-                <th>المبلغ (ريال)</th>
-                <th>الوصف</th>
-                <th>اسم المشروع</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {odaInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan="7">لا توجد فواتير مسجلة لهذه العهدة بعد</td>
-                </tr>
-              ) : (
-                odaInvoices.map((invoice) => {
-                  const hasFile = Boolean(invoice.fileName)
-                  const fileUrl = hasFile
-                    ? `${SERVER_BASE_URL}/uploads/${invoice.fileName}`
-                    : ''
-                  const downloadUrl = `${API_BASE_URL}/invoices/${invoice.id}/download`
-
-                  const handleView = () => {
-                    if (!hasFile) {
-                      return
-                    }
-                    window.open(fileUrl, '_blank', 'noopener,noreferrer')
-                  }
-
-                  const handleShare = () => {
-                    if (!hasFile) {
-                      return
-                    }
-                    const shareUrl = fileUrl
-                    if (navigator.share) {
-                      navigator
-                        .share({
-                          title: invoice.name,
-                          text: 'رابط مستند الفاتورة',
-                          url: shareUrl,
-                        })
-                        .catch((error) => {
-                          console.error(error)
-                        })
-                    } else if (navigator.clipboard && navigator.clipboard.writeText) {
-                      navigator.clipboard.writeText(shareUrl).catch((error) => {
-                        console.error(error)
-                      })
-                    }
-                  }
-
-                  return (
-                    <tr key={invoice.id}>
-                      <td>{invoice.id}</td>
-                      <td>{invoice.name}</td>
-                      <td>{invoice.date}</td>
-                      <td>{invoice.amount.toLocaleString('ar-SA')}</td>
-                      <td>{invoice.description}</td>
-                      <td>{invoice.projectName || '-'}</td>
-                      <td className="invoice-actions-cell">
-                        <button
-                          type="button"
-                          className="icon-button icon-button-view"
-                          onClick={handleView}
-                          disabled={!hasFile}
-                          aria-label="عرض الفاتورة"
-                        >
-                          🧾
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-button icon-button-share"
-                          onClick={handleShare}
-                          disabled={!hasFile}
-                          aria-label="مشاركة الفاتورة"
-                        >
-                          🔗
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-button icon-button-download"
-                          onClick={() => {
-                            if (!hasFile) {
-                              return
-                            }
-                            window.location.href = downloadUrl
-                          }}
-                          disabled={!hasFile}
-                          aria-label="تنزيل الفاتورة"
-                        >
-                          ⬇
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </section>
-
-        {isInvoiceModalOpen && (
-          <div className="modal-backdrop">
-            <div className="modal oda-invoices">
-              <h3>إضافة فاتورة جديدة</h3>
-              <form onSubmit={handleAddInvoice} className="invoice-form">
-                <div className="form-row">
-                  <label>رقم الفاتورة</label>
-                  <input type="text" value={nextInvoiceId} readOnly />
-                </div>
-                <div className="form-row">
-                  <label>اسم الفاتورة</label>
-                  <input
-                    type="text"
-                    value={invoiceName}
-                    onChange={(event) => setInvoiceName(event.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <label>الوصف</label>
-                  <input
-                    type="text"
-                    value={invoiceDescription}
-                    onChange={(event) =>
-                      setInvoiceDescription(event.target.value)
-                    }
-                  />
-                </div>
-                <div className="form-row">
-                  <label>المبلغ (ريال)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={invoiceAmount}
-                    onChange={(event) =>
-                      setInvoiceAmount(event.target.value)
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <label>اسم المشروع</label>
-                  <input
-                    type="text"
-                    value={invoiceProjectName}
-                    onChange={(event) =>
-                      setInvoiceProjectName(event.target.value)
-                    }
-                  />
-                </div>
-                <div className="form-row">
-                  <label>تاريخ الفاتورة</label>
-                  <input
-                    type="date"
-                    value={invoiceDate}
-                    onChange={(event) =>
-                      setInvoiceDate(event.target.value)
-                    }
-                  />
-                </div>
-                <div className="form-row form-row-full">
-                  <label>مستند الفاتورة (PDF أو صورة)</label>
-                  <input
-                    type="file"
-                    accept="application/pdf,image/*"
-                    onChange={(event) => {
-                      const file =
-                        event.target.files && event.target.files[0]
-                      setInvoiceFile(file || null)
-                    }}
-                    required
-                  />
-                </div>
-                <div className="modal-actions modal-actions-cancel">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => setIsInvoiceModalOpen(false)}
-                  >
-                    إلغاء
-                  </button>
-                </div>
-                <div className="modal-actions modal-actions-save">
-                  <button type="submit" className="primary-button">
-                    حفظ الفاتورة
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (view === 'newOda') {
-    return (
-      <div className="dashboard">
-        <div className="page-logo">
-          <img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
-
-        </div>
-        <header className="dashboard-header">
-          <h1>طلب عهدة جديدة</h1>
-        </header>
-
-        <section className="card new-oda-form">
-          <form onSubmit={handleCreateOda}>
-            <div className="form-row">
-              <label>رقم العهدة</label>
-              <input type="text" value={nextId} readOnly />
-            </div>
-
-            <div className="form-row">
-              <label>مبلغ العهدة (ريال)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={newAmount}
-                onChange={(event) => setNewAmount(event.target.value)}
-                required
-              />
-            </div>
-
-            {newOdaError && <p className="oda-error">{newOdaError}</p>}
-
-            <div className="form-actions">
-              <button type="button" onClick={() => setView('dashboard')}>
-                رجوع للقائمة
-              </button>
-              <button type="submit" className="primary-button">
-                حفظ العهدة
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
-    )
-  }
-
-  if (view === 'odaRequests') {
-    const filteredOdaRequests = odaRequests.filter((request) => {
+    const handleToggleInvoiceModal = () => {
       if (isDoctorSaud || isAccountant) {
-        return true
+        return
       }
-      if (isSameh) {
-        return request.employee === SAMAH_EMPLOYEE_NAME
-      }
-      if (isMishaal) {
-        return request.employee === MISHAAL_EMPLOYEE_NAME
-      }
-      return true
-    })
-    return (
-      <div className="dashboard">
-        <div className="page-logo">
-          <img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
+			if (!isInvoiceModalOpen) {
+				const today = new Date().toISOString().slice(0, 10)
+				if (!invoiceDate) {
+					setInvoiceDate(today)
+				}
+				setIsInvoiceModalOpen(true)
+			} else {
+				setIsInvoiceModalOpen(false)
+			}
+		}
 
-        </div>
-        <header className="dashboard-header">
-          <div className="oda-header-title">
-            <button
-              type="button"
-              onClick={() => setView('dashboard')}
-              className="back-icon-button"
-              aria-label="رجوع لقائمة العهد"
-            >
-              ←
-            </button>
-            <h1>طلبات العهدة</h1>
-          </div>
-        </header>
+		return (
+			<OdaDetailsPage
+				currentOda={currentOda}
+				odaInvoices={odaInvoices}
+				spentAmount={spentAmount}
+				canAddInvoice={canAddInvoice}
+				nextInvoiceId={nextInvoiceId}
+				invoiceName={invoiceName}
+				invoiceDescription={invoiceDescription}
+				invoiceAmount={invoiceAmount}
+				invoiceProjectName={invoiceProjectName}
+				invoiceDate={invoiceDate}
+				invoiceFile={invoiceFile}
+				isInvoiceModalOpen={isInvoiceModalOpen}
+				onChangeInvoiceName={setInvoiceName}
+				onChangeInvoiceDescription={setInvoiceDescription}
+				onChangeInvoiceAmount={setInvoiceAmount}
+				onChangeInvoiceProjectName={setInvoiceProjectName}
+				onChangeInvoiceDate={setInvoiceDate}
+				onChangeInvoiceFile={setInvoiceFile}
+				onToggleInvoiceModal={handleToggleInvoiceModal}
+				onAddInvoice={handleAddInvoice}
+				onBack={handleBack}
+				serverBaseUrl={SERVER_BASE_URL}
+				apiBaseUrl={API_BASE_URL}
+        onLogout={handleLogout}
+			/>
+		)
+	}
 
-        <section className="card oda-requests">
-          <h2>طلبات العهدة الجديدة</h2>
-          <table className="oda-table">
-            <thead>
-              <tr>
-                <th>رقم العهدة</th>
-                <th>الموظف</th>
-                <th>تاريخ الطلب</th>
-                <th>مبلغ العهدة الجديدة (ريال)</th>
-                <th>رصيد الإقفال السابق (ريال)</th>
-                <th>المبلغ المراد تحويله (ريال)</th>
-                <th>حالة الطلب</th>
-                {(isDoctorSaud || isAccountant) && <th>إجراءات</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOdaRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={isDoctorSaud || isAccountant ? 8 : 7}>
-                    لا توجد طلبات عهدة مسجلة حالياً
-                  </td>
-                </tr>
-              ) : (
-                filteredOdaRequests.map((request) => (
-                  <tr key={request._id || request.odaId}>
-                    <td>{request.odaId}</td>
-                    <td>{request.employee}</td>
-                    <td>{request.requestDate}</td>
-                    <td>{request.newAmount.toLocaleString('ar-SA')}</td>
-                    <td>{request.previousClosingBalance.toLocaleString('ar-SA')}</td>
-                    <td>{request.transferAmount.toLocaleString('ar-SA')}</td>
-                    <td>{request.status || 'معلقة'}</td>
-                    {(isDoctorSaud || isAccountant) && (
-                      <td>
-                        {request.status === 'معلقة' || request.status === 'بانتظار مراجعة المحاسب' ? (
-                          <div className="invoice-actions-cell">
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              onClick={() => handleApproveOdaRequest(request.odaId)}
-                            >
-                              قبول
-                            </button>
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              onClick={() => handleRejectOdaRequest(request.odaId)}
-                            >
-                              رفض
-                            </button>
-                          </div>
-                        ) : request.status === 'بانتظار موافقة الدكتور' && isDoctorSaud ? (
-                          <div className="invoice-actions-cell">
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              onClick={() => handleApproveOdaRequest(request.odaId)}
-                            >
-                              موافقة نهائية
-                            </button>
-                            <button
-                              type="button"
-                              className="secondary-button"
-                              onClick={() => handleRejectOdaRequest(request.odaId)}
-                            >
-                              رفض
-                            </button>
-                          </div>
-                        ) : (
-                          '-' 
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </section>
-      </div>
-    )
-  }
+	if (view === 'newOda') {
+		const handleBack = () => {
+			navigate('/dashboard')
+		}
+
+		return (
+			<NewOdaPage
+				nextId={nextId}
+				newAmount={newAmount}
+				newOdaError={newOdaError}
+				onChangeAmount={setNewAmount}
+				onSubmit={handleCreateOda}
+				onBack={handleBack}
+        onLogout={handleLogout}
+			/>
+		)
+	}
+
+	if (view === 'odaRequests') {
+		return (
+			<OdaRequestsPage
+				odaRequests={odaRequests}
+				isDoctorSaud={isDoctorSaud}
+				isAccountant={isAccountant}
+				isAccountant={isAccountant}
+				isSameh={isSameh}
+				isMishaal={isMishaal}
+				onApprove={handleApproveOdaRequest}
+				onReject={handleRejectOdaRequest}
+				onBack={() => navigate('/dashboard')}
+        onSendCode={handleSendLoginCode}
+        onVerifyCode={handleVerifyCodeSilent}
+        accountantPhone={currentUser && currentUser.phoneNumber ? String(currentUser.phoneNumber) : ''}
+        onLogout={handleLogout}
+			/>
+		)
+	}
 
   const filteredOdas = odas.filter((oda) => {
-    if (oda.status === 'معلقة' || oda.status === 'مرفوضة') {
+    const status = String(oda.status || '')
+    if (status === 'معلقة' || status.startsWith('مرفوضة')) {
       return false
     }
 
-    if (isMishaal) {
-      return oda.employee === MISHAAL_EMPLOYEE_NAME
-    }
+		if (isMishaal) {
+			return oda.employee === MISHAAL_EMPLOYEE_NAME
+		}
 
-    if (odaEmployeeFilter === 'sameh') {
-      return oda.employee === SAMAH_EMPLOYEE_NAME
-    }
-    if (odaEmployeeFilter === 'mishaal') {
-      return oda.employee === MISHAAL_EMPLOYEE_NAME
-    }
-    return true
-  })
+		if (odaEmployeeFilter === 'sameh') {
+			return oda.employee === SAMAH_EMPLOYEE_NAME
+		}
+		if (odaEmployeeFilter === 'mishaal') {
+			return oda.employee === MISHAAL_EMPLOYEE_NAME
+		}
+		return true
+	})
 
-  const displayedOdas = [...filteredOdas].sort((first, second) => {
-    if (first.id < second.id) {
-      return -1
-    }
-    if (first.id > second.id) {
-      return 1
-    }
-    return 0
-  })
+	const displayedOdas = [...filteredOdas].sort((first, second) => {
+		if (first.id < second.id) {
+			return -1
+		}
+		if (first.id > second.id) {
+			return 1
+		}
+		return 0
+	})
 
-  return (
-    <div className="dashboard">
-      <div className="page-logo">
-        <img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={handleLogout}
-        >
-          تسجيل الخروج
-        </button>
-      </div>
-      <header className="dashboard-header">
-        <h1>عهد الموظفين</h1>
-        <div className="dashboard-header-actions">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => setView('odaRequests')}
-          >
-            طلبات العهدة
-          </button>
-          {!isDoctorSaud && !hasPendingOdaRequestForCurrentUser && (
-            <button
-              type="button"
-              className="primary-button"
-              onClick={() => setView('newOda')}
-            >
-              طلب عهدة جديدة
-            </button>
-          )}
-        </div>
-      </header>
-
-      <section className="card oda-list-card">
-        <div className="oda-list-header">
-          <h2>قائمة العهد الحالية</h2>
-          {!isMishaal && (
-            <div className="oda-filter-buttons">
-              <button
-                type="button"
-                className={`secondary-button ${odaEmployeeFilter === 'all' ? 'oda-filter-button-active' : ''}`}
-                onClick={() => setOdaEmployeeFilter('all')}
-              >
-                كل العهد
-              </button>
-              <button
-                type="button"
-                className={`secondary-button ${odaEmployeeFilter === 'sameh' ? 'oda-filter-button-active' : ''}`}
-                onClick={() => setOdaEmployeeFilter('sameh')}
-              >
-                عهدة المهندس سامح
-              </button>
-              <button
-                type="button"
-                className={`secondary-button ${odaEmployeeFilter === 'mishaal' ? 'oda-filter-button-active' : ''}`}
-                onClick={() => setOdaEmployeeFilter('mishaal')}
-              >
-                عهدة الأستاذ مشعل
-              </button>
-            </div>
-          )}
-        </div>
-        {isLoading && <p>جاري تحميل البيانات من الخادم...</p>}
-        <table className="oda-table">
-          <thead>
-            <tr>
-              <th>رقم العهدة</th>
-              <th>الموظف</th>
-              <th>تاريخ بداية العهدة</th>
-              <th>القيمة (ريال)</th>
-              <th>الرصيد الحالي (ريال)</th>
-              <th>رصيد الإقفال (ريال)</th>
-              <th>الحالة</th>
-              <th>تاريخ إغلاق العهدة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedOdas.map((oda, index) => {
-              const displayId =
-                odaEmployeeFilter === 'all' ? oda.id : index + 1
-
-              return (
-                <tr
-                  key={oda.id}
-                  className="clickable-row"
-                  onClick={() => handleOpenOdaDetails(oda.id)}
-                >
-                  <td>{displayId}</td>
-                  <td>{oda.employee}</td>
-                  <td>{oda.startDate}</td>
-                  <td>{oda.amount.toLocaleString('ar-SA')}</td>
-                  <td>{oda.currentBalance.toLocaleString('ar-SA')}</td>
-                  <td>{oda.closingBalance.toLocaleString('ar-SA')}</td>
-                  <td>{oda.status}</td>
-                  <td>{oda.closingDate || '-'}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </section>
-    </div>
-  )
+	return (
+		<DashboardPage
+			displayedOdas={displayedOdas}
+			isDoctorSaud={isDoctorSaud}
+      isSameh={isSameh}
+			isMishaal={isMishaal}
+			isLoading={isLoading}
+			hasPendingOdaRequestForCurrentUser={hasPendingOdaRequestForCurrentUser}
+			odaEmployeeFilter={odaEmployeeFilter}
+			onChangeFilter={setOdaEmployeeFilter}
+			onOpenOdaDetails={handleOpenOdaDetails}
+			onLogout={handleLogout}
+			onOpenRequests={() => navigate('/oda-requests')}
+			onOpenNewOda={() => navigate('/new-oda')}
+		/>
+	)
 }
 
 export default App

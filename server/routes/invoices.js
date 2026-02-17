@@ -1,4 +1,5 @@
 import express from "express"
+import jwt from "jsonwebtoken"
 import multer from "multer"
 import fs from "fs"
 import path from "path"
@@ -6,6 +7,7 @@ import os from "os"
 import { fileURLToPath } from "url"
 import Invoice from "../models/Invoice.js"
 import Oda from "../models/Oda.js"
+import User from "../models/User.js"
 
 const router = express.Router()
 
@@ -91,6 +93,30 @@ router.get("/:id/download", async (req, res) => {
 
 router.post("/", upload.single("file"), async (req, res) => {
   try {
+    const authHeader = req.headers.authorization || ""
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : ""
+    const secret = globalThis.process && globalThis.process.env ? globalThis.process.env.JWT_SECRET : undefined
+    if (!token || !secret) {
+      res.status(401).json({ message: "غير مصرح" })
+      return
+    }
+    let payload
+    try {
+      payload = jwt.verify(token, secret)
+    } catch (error) {
+      console.error("JWT verification failed", error?.message || error)
+      res.status(401).json({ message: "رمز الدخول غير صالح" })
+      return
+    }
+    const userId = String(payload?.sub || "")
+    const email = String(payload?.email || "")
+    const user = userId ? await User.findById(userId) : await User.findOne({ email })
+    const role = String(user?.role || "")
+    if (role === "doctor" || role === "accountant") {
+      res.status(403).json({ message: "لا يحق للدكتور أو المحاسب إضافة فواتير" })
+      return
+    }
+
     const { odaId, date, name, description, projectName, amount } = req.body
 
     const parsedOdaId = Number(odaId)

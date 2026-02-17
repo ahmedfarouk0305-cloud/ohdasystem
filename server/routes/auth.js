@@ -1,6 +1,7 @@
 import express from "express"
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
+import axios from "axios"
 import User from "../models/User.js"
 
 const router = express.Router()
@@ -39,88 +40,108 @@ const getJwtSecret = () => {
   return undefined
 }
 
-router.post("/register", async (req, res) => {
-  try {
-    const { username, password, fullName, phoneNumber, role, roleLabel } = req.body
-
-    if (!username || !password) {
-      res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبة" })
-      return
-    }
-
-    const existingUser = await User.findOne({ username })
-    if (existingUser) {
-      res.status(409).json({ message: "اسم المستخدم مستخدم بالفعل" })
-      return
-    }
-
-    const passwordHash = await createPasswordHash(password)
-
-    const user = await User.create({
-      username,
-      passwordHash,
-      fullName,
-      phoneNumber: phoneNumber || "",
-      role: role || "employee",
-      roleLabel: roleLabel || undefined,
-    })
-
-    res.status(201).json({
-      id: user._id,
-      username: user.username,
-      fullName: user.fullName || "",
-      phoneNumber: user.phoneNumber || "",
-      role: user.role || "employee",
-      roleLabel: user.roleLabel || "",
-    })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: "فشل إنشاء المستخدم" })
+const sendOtpSms = async (toPhone, code) => {
+  const env = globalThis.process && globalThis.process.env ? globalThis.process.env : undefined
+  const secretKey = env ? env.DREAMS_SECRET_KEY : undefined
+  if (!secretKey) {
+    console.error("Skipping OTP SMS: DREAMS_SECRET_KEY is not configured in environment variables")
+    return
   }
+  const baseURL = "https://www.dreams.sa/index.php/api/sendsms"
+  const user = "Eva_RealEstate"
+  const sender = "Eva%20Aqar"
+  const message = `رمز التحقق للدخول إلى نظام العهدة: ${code}`
+  const encodedMessage = encodeURIComponent(message)
+  const smsURL = `${baseURL}/?user=${user}&secret_key=${secretKey}&sender=${sender}&to=${toPhone}&message=${encodedMessage}`
+  try {
+    await axios.get(smsURL)
+    console.log("OTP SMS sent", { toPhone })
+  } catch (error) {
+    console.error("Failed to send OTP SMS", {
+      toPhone,
+      error: error?.response?.data || error?.message || error,
+    })
+  }
+}
+
+router.post("/register", async (req, res) => {
+  res.status(403).json({ message: "تم إلغاء التسجيل بالبريد وكلمة المرور. يرجى إنشاء المستخدمين من لوحة الإدارة فقط" })
 })
 
 router.post("/login", async (req, res) => {
+  res.status(403).json({ message: "تم إلغاء تسجيل الدخول بكلمة المرور. استخدم رمز التحقق عبر الجوال" })
+})
+
+router.post("/send-code", async (req, res) => {
   try {
-    const { username, password } = req.body
-
-    if (!username || !password) {
-      res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبة" })
+    const { phoneNumber } = req.body
+    const trimmed = String(phoneNumber || "").trim()
+    if (!trimmed) {
+      res.status(400).json({ message: "رقم الجوال مطلوب" })
       return
     }
-
-    const user = await User.findOne({ username })
+    const user = await User.findOne({ phoneNumber: trimmed })
     if (!user) {
-      res.status(401).json({ message: "بيانات الدخول غير صحيحة" })
+      res.status(404).json({ message: "لا يوجد مستخدم بهذا الرقم" })
       return
     }
+    const code = String(crypto.randomInt(100000, 999999))
+    const otpHash = await createPasswordHash(code)
+    const expires = new Date(Date.now() + 10 * 60 * 1000)
+    user.otpHash = otpHash
+    user.otpExpiresAt = expires
+    await user.save()
+    await sendOtpSms(trimmed, code)
+    res.json({ message: "تم إرسال رمز التحقق" })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "فشل إرسال رمز التحقق" })
+  }
+})
 
-    const isValidPassword = await verifyPassword(password, user.passwordHash)
-    if (!isValidPassword) {
-      res.status(401).json({ message: "بيانات الدخول غير صحيحة" })
+router.post("/login-code", async (req, res) => {
+  try {
+    const { phoneNumber, code } = req.body
+    if (!phoneNumber || !code) {
+      res.status(400).json({ message: "رقم الجوال ورمز التحقق مطلوبان" })
       return
     }
-
+    const user = await User.findOne({ phoneNumber: String(phoneNumber).trim() })
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      res.status(401).json({ message: "رمز التحقق غير صالح" })
+      return
+    }
+    if (user.otpExpiresAt.getTime() < Date.now()) {
+      res.status(401).json({ message: "انتهت صلاحية رمز التحقق" })
+      return
+    }
+    const ok = await verifyPassword(String(code), user.otpHash)
+    if (!ok) {
+      res.status(401).json({ message: "رمز التحقق غير صحيح" })
+      return
+    }
     const secret = getJwtSecret()
     if (!secret) {
       console.error("JWT secret is missing")
       res.status(500).json({ message: "خطأ في إعدادات الخادم" })
       return
     }
-
     const token = jwt.sign(
       {
         sub: String(user._id),
-        username: user.username,
+        email: user.email,
       },
       secret,
       { expiresIn: "8h" },
     )
-
+    user.otpHash = ""
+    user.otpExpiresAt = undefined
+    await user.save()
     res.json({
       token,
       user: {
         id: user._id,
-        username: user.username,
+        email: user.email,
         fullName: user.fullName || "",
         phoneNumber: user.phoneNumber || "",
         role: user.role || "employee",
@@ -129,8 +150,12 @@ router.post("/login", async (req, res) => {
     })
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: "فشل تسجيل الدخول" })
+    res.status(500).json({ message: "فشل تسجيل الدخول برمز التحقق" })
   }
+})
+
+router.post("/reset-password", async (req, res) => {
+  res.status(403).json({ message: "تم إلغاء استرجاع كلمة المرور. تسجيل الدخول يعتمد على رمز التحقق فقط" })
 })
 
 export default router

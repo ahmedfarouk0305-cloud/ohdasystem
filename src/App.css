@@ -1,25 +1,33 @@
 #root {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2rem;
 }
 
 .dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
 }
 
 .page-logo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  direction: rtl;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.5rem;
+	direction: rtl;
 }
 
 .app-logo {
-  height: 120px;
+	height: 120px;
+}
+
+.login-page {
+	min-height: calc(100vh - 4rem);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.5rem 0;
 }
 
 .dashboard-header {
@@ -88,26 +96,148 @@
 }
 
 .login-card {
-  direction: rtl;
+	width: 100%;
+	max-width: 420px;
+	background-color: #ffffff;
+	border-radius: 18px;
+	border: 1px solid #e5e7eb;
+	box-shadow: 0 18px 60px rgba(15, 23, 42, 0.16);
+	padding: 1.75rem 1.75rem 2rem;
+}
+
+.login-brand {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 1.25rem;
+}
+
+.login-logo {
+	height: 72px;
+}
+
+.login-header h1 {
+	margin: 0;
+	font-size: 1.8rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	background: linear-gradient(135deg, hsl(49, 96%, 51%), hsl(39, 96%, 61%));
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+.login-subtitle {
+	margin-top: 0.4rem;
+	margin-bottom: 1.4rem;
+	font-size: 0.95rem;
+	color: #6b7280;
+}
+
+.login-phone-input {
+	direction: ltr;
+}
+
+.login-phone-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.login-send-code-button {
+	width: 100%;
+}
+
+.login-alt-button {
+	width: 100%;
+}
+
+.login-alt-options {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.25rem;
+}
+
+.login-alt-toggle {
+	margin-top: 1.25rem;
 }
 
 .login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
 }
 
 .login-error {
-  color: #b91c1c;
-  font-size: 0.85rem;
-  margin-top: -0.25rem;
-  margin-bottom: 0.75rem;
+	color: #b91c1c;
+	font-size: 0.85rem;
+	margin-top: -0.25rem;
+	margin-bottom: 0.75rem;
+}
+.login-info {
+	color: #065f46;
+	font-size: 0.85rem;
+	margin-top: -0.25rem;
+	margin-bottom: 0.75rem;
 }
 
 .login-actions {
-  justify-content: flex-start;
+	justify-content: flex-start;
 }
 
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.otp-box {
+  width: 52px;
+  height: 52px;
+  text-align: center;
+  font-size: 1.4rem;
+  padding: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+}
+
+.otp-box:focus {
+  outline: 2px solid #0f766e;
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.otp-box-error {
+  border-color: #b91c1c;
+  background-color: #fee2e2;
+}
+
+.verify-actions {
+  justify-content: space-between;
+}
+
+.verify-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verify-actions-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.verify-confirm {
+  width: 100%;
+}
+
+.verify-resend {
+  width: 100%;
+}
 .oda-list-card {
   direction: rtl;
 }
@@ -172,8 +302,8 @@
   padding: 0.6rem 1.6rem;
   font-size: 0.95rem;
   font-weight: 600;
-  background: linear-gradient(135deg, #0f766e, #22c55e);
-  color: #ffffff;
+	background: linear-gradient(135deg, hsl(49, 96%, 51%), hsl(39, 96%, 61%));
+	color: #111827;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -286,6 +416,7 @@
   justify-content: center;
   align-items: center;
   gap: 0.4rem;
+  direction: ltr;
 }
 
 .icon-button {
@@ -305,6 +436,33 @@
   background-color: #f3f4f6;
 }
 
+.icon-button-approve,
+.icon-button-reject {
+  border: none;
+  background-color: transparent;
+}
+.icon-button-approve:hover,
+.icon-button-reject:hover {
+  background-color: transparent;
+}
+.icon-button-approve {
+  color: #0f766e;
+}
+.icon-button-reject {
+  color: #b91c1c;
+}
+.icon-button-approve,
+.icon-button-reject {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.icon-button-approve svg,
+.icon-button-reject svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
 .invoice-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -314,6 +472,34 @@
 
 .form-row-full {
   grid-column: 1 / -1;
+}
+
+.hidden-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.document-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-only {
+    display: inline-flex;
+  }
 }
 
 .modal-backdrop {
@@ -363,9 +549,46 @@
   direction: ltr;
 }
 
+.otp-modal-title {
+  text-align: right;
+}
+
+.otp-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  direction: rtl;
+}
+
+.modal-close-button {
+  border: none;
+  background: transparent;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.modal-close-button:hover {
+  background-color: rgba(0,0,0,0.06);
+}
+
+.otp-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.otp-modal-actions .primary-button,
+.otp-modal-actions .secondary-button {
+  width: 100%;
+}
+
 @media (max-width: 640px) {
   #root {
     padding: 1rem;
+    padding-bottom: calc(6.25rem + env(safe-area-inset-bottom));
   }
 
   .dashboard-header {
@@ -378,5 +601,194 @@
 
   .form-actions {
     justify-content: stretch;
+  }
+
+  .page-logo {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .app-logo {
+    height: 80px;
+  }
+
+  .dashboard .secondary-button:not(.logout-button) {
+    width: 90%;
+    margin: 0 auto;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .oda-list-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .oda-requests {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .oda-invoices {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dashboard-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .dashboard-header-actions .primary-button,
+  .dashboard-header-actions .secondary-button {
+    width: 90%;
+    margin: 0;
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .oda-table {
+    min-width: 720px;
+    font-size: 0.9rem;
+  }
+
+  .oda-table th,
+  .oda-table td {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .oda-filter-buttons {
+    width: 100%;
+  }
+
+  .oda-filter-buttons .secondary-button {
+    width: 100%;
+  }
+
+  .otp-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .otp-modal-actions .primary-button,
+  .otp-modal-actions .secondary-button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .oda-table-wrapper {
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: 65vh;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 0.5rem;
+  }
+
+  .logout-button {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 1rem;
+    right: 1rem;
+    z-index: 999;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1rem 1rem 1.25rem;
+    border-radius: 14px;
+  }
+  .login-logo {
+    height: 60px;
+  }
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+  .login-subtitle {
+    font-size: 0.9rem;
+  }
+  .otp-inputs {
+    gap: 0.6rem;
+    margin: 0.75rem 0;
+  }
+  .otp-box {
+    width: 46px;
+    height: 46px;
+    font-size: 1.25rem;
+    padding: 0.3rem;
+  }
+  .verify-actions-column {
+    gap: 0.4rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .app-logo {
+    height: 72px;
+  }
+
+  .oda-table {
+    min-width: 680px;
+    font-size: 0.85rem;
+  }
+
+  .oda-table th,
+  .oda-table td {
+    padding: 0.45rem 0.6rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .otp-box {
+    width: 42px;
+    height: 42px;
+    font-size: 1.1rem;
+  }
+  .otp-inputs {
+    gap: 0.5rem;
+  }
+
+  .oda-table {
+    min-width: 640px;
+    font-size: 0.8rem;
+  }
+
+  .oda-table th,
+  .oda-table td {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .otp-box {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+  .otp-inputs {
+    gap: 0.4rem;
+  }
+  .login-card {
+    padding: 0.75rem;
+  }
+
+  .oda-table {
+    min-width: 600px;
+    font-size: 0.78rem;
+  }
+
+  .oda-table th,
+  .oda-table td {
+    padding: 0.35rem 0.45rem;
   }
 }
