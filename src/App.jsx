@@ -47,6 +47,16 @@ function App() {
   const [replacementFile, setReplacementFile] = useState(null)
   const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false)
   const [isAddingReplacement, setIsAddingReplacement] = useState(false)
+  const [isEditInvoiceModalOpen, setIsEditInvoiceModalOpen] = useState(false)
+  const [editingInvoice, setEditingInvoice] = useState(null)
+  const [invoiceFilter, setInvoiceFilter] = useState('all')
+  const [editInvoiceName, setEditInvoiceName] = useState('')
+  const [editInvoiceDescription, setEditInvoiceDescription] = useState('')
+  const [editInvoiceAmount, setEditInvoiceAmount] = useState('')
+  const [editInvoiceProjectName, setEditInvoiceProjectName] = useState('')
+  const [editInvoiceDate, setEditInvoiceDate] = useState('')
+  const [editInvoiceFile, setEditInvoiceFile] = useState(null)
+  const [isUpdatingInvoice, setIsUpdatingInvoice] = useState(false)
 
   const currentRole = currentUser ? currentUser.role || '' : ''
 
@@ -570,6 +580,12 @@ function App() {
       .filter((inv) => inv.kind === 'replacement')
       .reduce((sum, inv) => sum + Number(inv.amount || 0), 0)
 
+    const filteredInvoicesForTable = odaInvoices.filter((inv) => {
+      if (invoiceFilter === 'all') return true
+      if (invoiceFilter === 'invoice') return inv.kind === 'invoice'
+      return inv.kind === 'replacement'
+    })
+
     const canAddInvoice =
 			currentOda.status === 'مفتوحة' &&
       !isDoctorSaud &&
@@ -665,15 +681,83 @@ function App() {
       setIsReplacementModalOpen(false)
       setIsAddingReplacement(false)
     }
+    const handleOpenEditInvoice = (invoice) => {
+      if (isDoctorSaud || isAccountant) {
+        return
+      }
+      if (!invoice) {
+        return
+      }
+      setEditingInvoice(invoice)
+      setEditInvoiceName(String(invoice.name || ''))
+      setEditInvoiceDescription(String(invoice.description || ''))
+      setEditInvoiceAmount(String(invoice.amount != null ? invoice.amount : ''))
+      setEditInvoiceProjectName(String(invoice.projectName || ''))
+      setEditInvoiceDate(String(invoice.date || new Date().toISOString().slice(0, 10)))
+      setEditInvoiceFile(null)
+      setIsEditInvoiceModalOpen(true)
+    }
+    const handleUpdateInvoice = async (event) => {
+      event.preventDefault()
+      if (isDoctorSaud || isAccountant) {
+        return
+      }
+      if (!editingInvoice) {
+        return
+      }
+      const amountNumber = Number(editInvoiceAmount)
+      if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+        return
+      }
+      if (isUpdatingInvoice) {
+        return
+      }
+      const dateValue = editInvoiceDate || new Date().toISOString().slice(0, 10)
+      const formData = new FormData()
+      formData.append('date', dateValue)
+      formData.append('name', editInvoiceName)
+      formData.append('description', editInvoiceDescription)
+      formData.append('projectName', editInvoiceProjectName)
+      formData.append('amount', String(amountNumber))
+      if (editInvoiceFile) {
+        formData.append('file', editInvoiceFile)
+      }
+      const headers = {}
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`
+      }
+      setIsUpdatingInvoice(true)
+      const result = await safeJsonFetch(`${API_BASE_URL}/invoices/${editingInvoice.id}`, {
+        method: 'PUT',
+        headers: { Accept: 'application/json', ...headers },
+        body: formData,
+      })
+      if (!result.ok) {
+        setIsUpdatingInvoice(false)
+        return
+      }
+      await loadData()
+      setIsEditInvoiceModalOpen(false)
+      setEditingInvoice(null)
+      setEditInvoiceName('')
+      setEditInvoiceDescription('')
+      setEditInvoiceAmount('')
+      setEditInvoiceProjectName('')
+      setEditInvoiceDate('')
+      setEditInvoiceFile(null)
+      setIsUpdatingInvoice(false)
+    }
 
 		return (
 			<OdaDetailsPage
 				currentOda={currentOda}
-				odaInvoices={odaInvoices}
+				odaInvoices={filteredInvoicesForTable}
 				spentAmount={spentAmount}
         replacementTotal={replacementTotal}
 				canAddInvoice={canAddInvoice}
 				nextInvoiceId={nextInvoiceId}
+        invoiceFilter={invoiceFilter}
+        onChangeInvoiceFilter={setInvoiceFilter}
 				invoiceName={invoiceName}
 				invoiceDescription={invoiceDescription}
 				invoiceAmount={invoiceAmount}
@@ -704,10 +788,28 @@ function App() {
         onChangeReplacementDate={setReplacementDate}
         onChangeReplacementFile={setReplacementFile}
         onAddReplacement={handleAddReplacement}
+        isEditInvoiceModalOpen={isEditInvoiceModalOpen}
+        editingInvoice={editingInvoice}
+        editInvoiceName={editInvoiceName}
+        editInvoiceDescription={editInvoiceDescription}
+        editInvoiceAmount={editInvoiceAmount}
+        editInvoiceProjectName={editInvoiceProjectName}
+        editInvoiceDate={editInvoiceDate}
+        editInvoiceFile={editInvoiceFile}
+        onOpenEditInvoice={handleOpenEditInvoice}
+        onChangeEditInvoiceName={setEditInvoiceName}
+        onChangeEditInvoiceDescription={setEditInvoiceDescription}
+        onChangeEditInvoiceAmount={setEditInvoiceAmount}
+        onChangeEditInvoiceProjectName={setEditInvoiceProjectName}
+        onChangeEditInvoiceDate={setEditInvoiceDate}
+        onChangeEditInvoiceFile={setEditInvoiceFile}
+        onUpdateInvoice={handleUpdateInvoice}
+        onCloseEditInvoice={() => setIsEditInvoiceModalOpen(false)}
 				onBack={handleBack}
 				apiBaseUrl={API_BASE_URL}
         isInvoiceSubmitting={isAddingInvoice}
         isReplacementSubmitting={isAddingReplacement}
+        isUpdatingInvoice={isUpdatingInvoice}
         onLogout={handleLogout}
 			/>
 		)

@@ -35,21 +35,43 @@ export default function OdaDetailsPage({
   onChangeReplacementDate,
   onChangeReplacementFile,
   onAddReplacement,
+  isEditInvoiceModalOpen,
+  editingInvoice,
+  editInvoiceName,
+  editInvoiceDescription,
+  editInvoiceAmount,
+  editInvoiceProjectName,
+  editInvoiceDate,
+  editInvoiceFile,
+  onOpenEditInvoice,
+  onChangeEditInvoiceName,
+  onChangeEditInvoiceDescription,
+  onChangeEditInvoiceAmount,
+  onChangeEditInvoiceProjectName,
+  onChangeEditInvoiceDate,
+  onChangeEditInvoiceFile,
+  onUpdateInvoice,
+  onCloseEditInvoice,
 	onBack,
 	apiBaseUrl,
   onLogout,
   isInvoiceSubmitting,
   isReplacementSubmitting,
+  isUpdatingInvoice,
+  invoiceFilter,
+  onChangeInvoiceFilter,
 }) {
 	if (!currentOda) {
 		return null
 	}
 
+	const totalWithReplacements = Number(currentOda.amount || 0) + Number(replacementTotal || 0)
+
 	return (
 		<div className="dashboard">
 			<div className="page-logo">
 				<img src="/لوجو فقط png.png" alt="شعار الشركة" className="app-logo" />
-        {!isInvoiceModalOpen && !isReplacementModalOpen && (
+        {!isInvoiceModalOpen && !isReplacementModalOpen && !isEditInvoiceModalOpen && (
           <button type="button" className="secondary-button logout-button" onClick={onLogout}>
             تسجيل الخروج
           </button>
@@ -81,18 +103,24 @@ export default function OdaDetailsPage({
 							{currentOda.amount.toLocaleString('ar-SA')} ريال
 						</div>
 					</div>
-					<div className="summary-item">
-						<div className="summary-label">المصروف حتى الآن</div>
-						<div className="summary-value">
-							{spentAmount.toLocaleString('ar-SA')} ريال
-						</div>
-					</div>
           <div className="summary-item">
             <div className="summary-label">استعاضة نقدية</div>
             <div className="summary-value">
               {Number(replacementTotal || 0).toLocaleString('ar-SA')} ريال
             </div>
           </div>
+          <div className="summary-item">
+            <div className="summary-label">الرصيد الإجمالي</div>
+            <div className="summary-value">
+              {totalWithReplacements.toLocaleString('ar-SA')} ريال
+            </div>
+          </div>
+					<div className="summary-item">
+						<div className="summary-label">المصروف حتى الآن</div>
+						<div className="summary-value">
+							{spentAmount.toLocaleString('ar-SA')} ريال
+						</div>
+					</div>
 					<div className="summary-item">
 						<div className="summary-label">الرصيد الحالي</div>
 						<div className="summary-value">
@@ -142,6 +170,29 @@ export default function OdaDetailsPage({
             </div>
           )}
 				</div>
+        <div className="oda-filter-buttons" style={{ marginBottom: '0.5rem' }}>
+          <button
+            type="button"
+            className={`secondary-button ${invoiceFilter === 'all' ? 'oda-filter-button-active' : ''}`}
+            onClick={() => onChangeInvoiceFilter('all')}
+          >
+            الكل
+          </button>
+          <button
+            type="button"
+            className={`secondary-button ${invoiceFilter === 'invoice' ? 'oda-filter-button-active' : ''}`}
+            onClick={() => onChangeInvoiceFilter('invoice')}
+          >
+            الفواتير
+          </button>
+          <button
+            type="button"
+            className={`secondary-button ${invoiceFilter === 'replacement' ? 'oda-filter-button-active' : ''}`}
+            onClick={() => onChangeInvoiceFilter('replacement')}
+          >
+            الاستعاضة
+          </button>
+        </div>
 
         <div className="oda-table-wrapper">
   				<table className="oda-table">
@@ -169,7 +220,8 @@ export default function OdaDetailsPage({
 									: ''
                 
 
-								const handleView = () => {
+								const handleView = (event) => {
+									event.stopPropagation()
 									if (!hasFile) {
 										return
 									}
@@ -179,7 +231,15 @@ export default function OdaDetailsPage({
                 
 
 								return (
-									<tr key={invoice.id}>
+									<tr
+                    key={invoice.id}
+                    onClick={() => {
+                      if (canAddInvoice) {
+                        onOpenEditInvoice(invoice)
+                      }
+                    }}
+                    style={{ cursor: canAddInvoice ? 'pointer' : 'default' }}
+                  >
 										<td>{invoice.id}</td>
 										<td>
                       {invoice.name}
@@ -317,6 +377,110 @@ export default function OdaDetailsPage({
 					</div>
 				</div>
 			)}
+      {isEditInvoiceModalOpen && editingInvoice && (
+        <div className="modal-backdrop">
+          <div className="modal oda-invoices">
+            <h3>تعديل الفاتورة</h3>
+            <form onSubmit={onUpdateInvoice} className="invoice-form">
+              <div className="form-row">
+                <label>رقم الفاتورة</label>
+                <input type="text" value={editingInvoice.id} readOnly />
+              </div>
+              <div className="form-row">
+                <label>اسم الفاتورة</label>
+                <input
+                  type="text"
+                  value={editInvoiceName}
+                  onChange={(event) => onChangeEditInvoiceName(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-row">
+                <label>الوصف</label>
+                <input
+                  type="text"
+                  value={editInvoiceDescription}
+                  onChange={(event) => onChangeEditInvoiceDescription(event.target.value)}
+                />
+              </div>
+              <div className="form-row">
+                <label>المبلغ </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editInvoiceAmount}
+                  onChange={(event) => onChangeEditInvoiceAmount(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-row">
+                <label>اسم المشروع</label>
+                <input
+                  type="text"
+                  value={editInvoiceProjectName}
+                  onChange={(event) => onChangeEditInvoiceProjectName(event.target.value)}
+                />
+              </div>
+              <div className="form-row">
+                <label>تاريخ الفاتورة</label>
+                <input
+                  type="date"
+                  value={editInvoiceDate}
+                  onChange={(event) => onChangeEditInvoiceDate(event.target.value)}
+                />
+              </div>
+              <div className="form-row form-row-full">
+                <label>مستند الفاتورة (اختياري)</label>
+                <div className="document-actions">
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    className="hidden-file-input"
+                    id="edit-file-input"
+                    onChange={async (event) => {
+                      const file = event.target.files && event.target.files[0]
+                      if (!file) {
+                        return
+                      }
+                      onChangeEditInvoiceFile(file)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => {
+                      const el = document.getElementById('edit-file-input')
+                      if (el) {
+                        el.click()
+                      }
+                    }}
+                  >
+                    اختيار ملف جديد
+                  </button>
+                  <span className="file-name-indicator">
+                    {editInvoiceFile ? `الملف المختار: ${editInvoiceFile.name}` : 'اختياري'}
+                  </span>
+                </div>
+              </div>
+              <div className="modal-actions modal-actions-cancel">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={onCloseEditInvoice}
+                >
+                  إلغاء
+                </button>
+              </div>
+              <div className="modal-actions modal-actions-save">
+                <button type="submit" className="primary-button" disabled={isUpdatingInvoice}>
+                  حفظ التعديلات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {isReplacementModalOpen && (
         <div className="modal-backdrop">
           <div className="modal oda-invoices">

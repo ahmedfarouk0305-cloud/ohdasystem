@@ -358,6 +358,7 @@
   padding: 0.75rem 1rem;
   text-align: center;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 
 .oda-table th {
@@ -459,7 +460,7 @@
   height: 32px;
   border-radius: 999px;
   border: 1px solid #d1d5db;
-  background-color: #ffffff;
+  background-color: transparent;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -468,7 +469,7 @@
 }
 
 .icon-button:hover {
-  background-color: #f3f4f6;
+  background-color: rgba(243, 244, 246, 0.8);
 }
 
 .icon-button-view,
