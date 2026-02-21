@@ -56,13 +56,13 @@ const sendOdaSmsNotification = async (employee, transferAmount) => {
   }
 }
 
-const sendDoctorSmsNotification = async (employee, odaId, employeeOdaNumber) => {
+const sendDoctorSmsNotification = async (employee, odaId, employeeOdaNumber, transferAmount) => {
   const phones = await getPhonesByRole("doctor")
   const num = employeeOdaNumber || odaId
   const publicUrl =
     (globalThis.process && globalThis.process.env ? globalThis.process.env.PUBLIC_APP_URL : "") ||
     "https://ohda.dashboard-evasaudi.com"
-  const message = `طلب عهدة للموظف ${employee} رقم ${num} تم اعتماده من المحاسب وهو بانتظار موافقة الدكتور. يرجى المراجعة من خلال الرابط التالي : ${publicUrl}`
+  const message = `طلب عهدة للموظف ${employee} رقم ${num} تم اعتماده من المحاسب والمبلغ المراد تحويله ${transferAmount}. يرجى المراجعة من خلال الرابط التالي : ${publicUrl}`
   for (const phone of phones) {
     await sendSms(phone, message)
   }
@@ -262,7 +262,9 @@ router.post("/:id/accountant-approve", async (req, res) => {
     await OdaRequest.findOneAndUpdate({ odaId: id }, { status: "مقبولة من المحاسب" })
 
     try {
-      await sendDoctorSmsNotification(oda.employee, id, oda.employeeOdaNumber)
+      const request = await OdaRequest.findOne({ odaId: id }).select("transferAmount")
+      const transferAmount = request && request.transferAmount != null ? request.transferAmount : oda.amount
+      await sendDoctorSmsNotification(oda.employee, id, oda.employeeOdaNumber, transferAmount)
     } catch (notifyError) {
       console.error("Doctor notification failed", notifyError?.message || notifyError)
     }
