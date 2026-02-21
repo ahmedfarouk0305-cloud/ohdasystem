@@ -58,6 +58,7 @@ export default function OdaDetailsPage({
   isInvoiceSubmitting,
   isReplacementSubmitting,
   isUpdatingInvoice,
+  editInvoiceError,
   invoiceFilter,
   onChangeInvoiceFilter,
 }) {
@@ -214,9 +215,9 @@ export default function OdaDetailsPage({
 							</tr>
 						) : (
 							odaInvoices.map((invoice) => {
-								const hasFile = Boolean(invoice.fileName)
+								const hasFile = Boolean(invoice.fileName || invoice.fileUrl)
 								const viewUrl = hasFile
-									? `${apiBaseUrl}/invoices/view/${invoice.id}`
+									? `${apiBaseUrl}/invoices/view/${invoice.odaId}/${invoice.id}`
 									: ''
                 
 
@@ -232,7 +233,7 @@ export default function OdaDetailsPage({
 
 								return (
 									<tr
-                    key={invoice.id}
+                    key={`${invoice.odaId}-${invoice.kind}-${invoice.id}`}
                     onClick={() => {
                       if (canAddInvoice) {
                         onOpenEditInvoice(invoice)
@@ -463,6 +464,9 @@ export default function OdaDetailsPage({
                   </span>
                 </div>
               </div>
+              {editInvoiceError && (
+                <div className="oda-error">{editInvoiceError}</div>
+              )}
               <div className="modal-actions modal-actions-cancel">
                 <button
                   type="button"

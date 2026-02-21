@@ -67,17 +67,18 @@ router.get("/", async (req, res) => {
   }
 })
 
-router.get("/:id/download", async (req, res) => {
+router.get("/:odaId/:id/download", async (req, res) => {
   try {
+    const odaId = Number(req.params.odaId)
     const id = Number(req.params.id)
-    if (!id) {
-      res.status(400).json({ message: "Invalid invoice id" })
+    if (!id || !odaId) {
+      res.status(400).json({ message: "Invalid invoice id or oda id" })
       return
     }
 
-    let invoice = await Invoice.findOne({ id })
+    let invoice = await Invoice.findOne({ id, odaId })
     if (!invoice) {
-      invoice = await Replacement.findOne({ id })
+      invoice = await Replacement.findOne({ id, odaId })
     }
     if (!invoice || (!invoice.fileName && !invoice.fileUrl)) {
       res.status(404).json({ message: "Invoice file not found" })
@@ -113,17 +114,18 @@ router.get("/:id/download", async (req, res) => {
   }
 })
 
-router.get("/view/:id", async (req, res) => {
+router.get("/view/:odaId/:id", async (req, res) => {
   try {
+    const odaId = Number(req.params.odaId)
     const id = Number(req.params.id)
-    if (!id) {
-      res.status(400).json({ message: "Invalid invoice id" })
+    if (!id || !odaId) {
+      res.status(400).json({ message: "Invalid invoice id or oda id" })
       return
     }
 
-    let invoice = await Invoice.findOne({ id })
+    let invoice = await Invoice.findOne({ id, odaId })
     if (!invoice) {
-      invoice = await Replacement.findOne({ id })
+      invoice = await Replacement.findOne({ id, odaId })
     }
     if (!invoice || (!invoice.fileName && !invoice.fileUrl)) {
       res.status(404).json({ message: "Invoice file not found" })
@@ -208,7 +210,9 @@ router.post("/", upload.single("file"), async (req, res) => {
     }
 
     const lastInvoice = await Invoice.findOne({ odaId: parsedOdaId }).sort({ id: -1 })
-    const nextId = lastInvoice ? lastInvoice.id + 1 : 1
+    const lastReplacement = await Replacement.findOne({ odaId: parsedOdaId }).sort({ id: -1 })
+    const lastId = Math.max(lastInvoice ? lastInvoice.id : 0, lastReplacement ? lastReplacement.id : 0)
+    const nextId = lastId + 1
     const invoiceDate = date || new Date().toISOString().slice(0, 10)
 
     let createdInvoice
@@ -359,11 +363,12 @@ router.post("/replacement", upload.single("file"), async (req, res) => {
   }
 })
 
-router.put("/:id", upload.single("file"), async (req, res) => {
+router.put("/:odaId/:id", upload.single("file"), async (req, res) => {
   try {
+    const odaId = Number(req.params.odaId)
     const id = Number(req.params.id)
-    if (!id) {
-      res.status(400).json({ message: "Invalid invoice id" })
+    if (!id || !odaId) {
+      res.status(400).json({ message: "Invalid invoice id or oda id" })
       return
     }
     const authHeader = req.headers.authorization || ""
@@ -388,10 +393,10 @@ router.put("/:id", upload.single("file"), async (req, res) => {
       res.status(403).json({ message: "لا يحق للدكتور أو المحاسب تعديل الفواتير" })
       return
     }
-    let doc = await Invoice.findOne({ id })
+    let doc = await Invoice.findOne({ id, odaId })
     let isReplacement = false
     if (!doc) {
-      doc = await Replacement.findOne({ id })
+      doc = await Replacement.findOne({ id, odaId })
       isReplacement = !!doc
     }
     if (!doc) {

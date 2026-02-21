@@ -57,6 +57,7 @@ function App() {
   const [editInvoiceDate, setEditInvoiceDate] = useState('')
   const [editInvoiceFile, setEditInvoiceFile] = useState(null)
   const [isUpdatingInvoice, setIsUpdatingInvoice] = useState(false)
+  const [editInvoiceError, setEditInvoiceError] = useState('')
 
   const currentRole = currentUser ? currentUser.role || '' : ''
 
@@ -695,6 +696,7 @@ function App() {
       setEditInvoiceProjectName(String(invoice.projectName || ''))
       setEditInvoiceDate(String(invoice.date || new Date().toISOString().slice(0, 10)))
       setEditInvoiceFile(null)
+      setEditInvoiceError('')
       setIsEditInvoiceModalOpen(true)
     }
     const handleUpdateInvoice = async (event) => {
@@ -722,17 +724,22 @@ function App() {
       if (editInvoiceFile) {
         formData.append('file', editInvoiceFile)
       }
-      const headers = {}
-      if (authToken) {
-        headers.Authorization = `Bearer ${authToken}`
-      }
+      const headers = { ...getAuthHeaders() }
       setIsUpdatingInvoice(true)
-      const result = await safeJsonFetch(`${API_BASE_URL}/invoices/${editingInvoice.id}`, {
+      setEditInvoiceError('')
+      const result = await safeJsonFetch(`${API_BASE_URL}/invoices/${editingInvoice.odaId}/${editingInvoice.id}`, {
         method: 'PUT',
         headers: { Accept: 'application/json', ...headers },
         body: formData,
       })
       if (!result.ok) {
+        let message = 'تعذّر حفظ التعديلات، الرجاء المحاولة لاحقاً'
+        if (result.status === 401) {
+          message = 'انتهت جلسة الدخول، الرجاء إعادة تسجيل الدخول'
+          setIsEditInvoiceModalOpen(false)
+          navigate('/login')
+        }
+        setEditInvoiceError(message)
         setIsUpdatingInvoice(false)
         return
       }
@@ -810,6 +817,7 @@ function App() {
         isInvoiceSubmitting={isAddingInvoice}
         isReplacementSubmitting={isAddingReplacement}
         isUpdatingInvoice={isUpdatingInvoice}
+        editInvoiceError={editInvoiceError}
         onLogout={handleLogout}
 			/>
 		)
