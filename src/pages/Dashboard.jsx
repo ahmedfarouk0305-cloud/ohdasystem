@@ -1,6 +1,8 @@
 export default function DashboardPage({
 	displayedOdas,
 	isSameh,
+  isDoctorSaud,
+  isAccountant,
 	isMishaal,
 	isLoading,
 	hasPendingOdaRequestForCurrentUser,
@@ -10,6 +12,7 @@ export default function DashboardPage({
 	onLogout,
 	onOpenRequests,
 	onOpenNewOda,
+  requestsBadgeCount = 0,
 }) {
 	return (
 		<div className="dashboard">
@@ -26,8 +29,20 @@ export default function DashboardPage({
 						type="button"
 						className="secondary-button"
 						onClick={onOpenRequests}
+            title={
+              requestsBadgeCount > 0
+                ? (isAccountant
+                    ? `لديك ${requestsBadgeCount} طلب(ات) بانتظار مراجعة المحاسب`
+                    : (isDoctorSaud ? `لديك ${requestsBadgeCount} طلب(ات) بانتظار موافقة الدكتور` : 'طلبات العهدة'))
+                : 'طلبات العهدة'
+            }
 					>
-						طلبات العهدة
+						<span>طلبات العهدة</span>
+            {requestsBadgeCount > 0 && (
+              <span className="btn-badge" aria-label={`عدد الطلبات: ${requestsBadgeCount}`}>
+                {requestsBadgeCount}
+              </span>
+            )}
 					</button>
 					{(isSameh || isMishaal) && !hasPendingOdaRequestForCurrentUser && (
 						<button

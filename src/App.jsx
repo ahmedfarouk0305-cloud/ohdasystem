@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import LoginPage from './pages/Login'
 import VerifyCodePage from './pages/VerifyCode'
@@ -279,6 +279,14 @@ function App() {
     }
     return { ok: res.ok, status: res.status, headers: res.headers, data, response: res }
   }
+
+  const accountantPendingCount = useMemo(() => {
+    return odaRequests.filter((r) => String(r.status || '') === 'بانتظار مراجعة المحاسب').length
+  }, [odaRequests])
+  const doctorPendingCount = useMemo(() => {
+    return odaRequests.filter((r) => String(r.status || '') === 'مقبولة من المحاسب').length
+  }, [odaRequests])
+  const requestsBadgeCount = (isAccountant && accountantPendingCount) || (isDoctorSaud && doctorPendingCount) || 0
 
   const handleSendLoginCode = async (phoneNumber, purpose = 'login') => {
     try {
@@ -894,7 +902,8 @@ function App() {
 	return (
 		<DashboardPage
 			displayedOdas={displayedOdas}
-			isDoctorSaud={isDoctorSaud}
+      isDoctorSaud={isDoctorSaud}
+      isAccountant={isAccountant}
       isSameh={isSameh}
 			isMishaal={isMishaal}
 			isLoading={isLoading}
@@ -905,6 +914,7 @@ function App() {
 			onLogout={handleLogout}
 			onOpenRequests={() => navigate('/oda-requests')}
 			onOpenNewOda={() => navigate('/new-oda')}
+      requestsBadgeCount={requestsBadgeCount}
 		/>
 	)
 }
